@@ -102,6 +102,29 @@ int main() {
 
   nn.backward(x, y_onehot);
 
+  cout << "test nn sigmoid" << endl;
+  NeuralNetMLP test3(4, 3, layer_counts);
+
+  cout << endl;
+  for(int i=0; i < 10; i++) {
+    test3.forward(x);
+    test3.backward(x, y_onehot, 0.01);
+
+    cout << "Iteration " << i << " MSE Sigmoid Loss: " << test3.mse_loss(test3.output_activations, y_onehot) << endl;
+  }
+
+  cout << "test nn" << endl;
+  NeuralNetMLP test4(4, 3, layer_counts, "sigmoid", "categorical_cross_entropy");
+
+  cout << endl;
+  for(int i=0; i < 10; i++) {
+    test4.forward(x);
+    test4.backward(x, y_onehot, 0.01);
+
+    cout << "Iteration " << i << " CCE Sigmoid Loss: " << test4.mse_loss(test4.output_activations, y_onehot) << endl;
+  }
+
+  cout << "test nn mse" << endl;
   NeuralNetMLP test(4, 3, layer_counts, "softmax");
 
   cout << endl;
@@ -109,6 +132,17 @@ int main() {
     test.forward(x);
     test.backward(x, y_onehot, 0.01);
 
-    cout << "Iteration " << i << " MSE Loss: " << test.mse_loss(test.output_activations, y_onehot) << endl;
+    cout << "Iteration " << i << " MSE Softmax Loss: " << test.mse_loss(test.output_activations, y_onehot) << endl;
+  }
+
+  cout << endl << "test nn cce" << endl;
+  NeuralNetMLP test2(4, 3, layer_counts, "softmax", "categorical_cross_entropy");
+
+  cout << endl;
+  for(int i=0; i < 10; i++) {
+    test2.forward(x);
+    test2.backward(x, y_onehot, 0.01);
+
+    cout << "Iteration " << i << " CCE Softmax Loss: " << test2.categorical_cross_entropy_loss(test2.output_activations, y_onehot) << endl;
   }
 }

@@ -16,7 +16,7 @@ Matrix<float> NeuralNetMLP::int_to_onehot(vector<int> y) {
   return y_onehot;
 }
 
-void NeuralNetMLP::forward(Matrix<float> x) {  
+void NeuralNetMLP::forward(Matrix<float> x) {
   Matrix<float> prev_weights;
 
   for(int i=0; i < num_hidden.size(); i++) {
@@ -75,7 +75,6 @@ void NeuralNetMLP::backward(Matrix<float> x, Matrix<float> y_onehot, float learn
 }
 
 Matrix<float> NeuralNetMLP::sigmoid(Matrix<float> z) {
-  cout << "Using sigmoid " << endl;
   Matrix<float> res(z.row_count, z.col_count);
 
   for(int i=0; i < z.row_count; i++) {
@@ -88,7 +87,6 @@ Matrix<float> NeuralNetMLP::sigmoid(Matrix<float> z) {
 }
 
 Matrix<float> NeuralNetMLP::sigmoid_prime(Matrix<float> z) {
-  cout << "Using sigmoid prime " << endl;
   Matrix<float> sigm = sigmoid(z);
   Matrix<float> diff = Matrix<float>(z.row_count, z.col_count, 1.0) - sigm;
 
@@ -99,7 +97,6 @@ Matrix<float> NeuralNetMLP::sigmoid_prime(Matrix<float> z) {
 }
 
 Matrix<float> NeuralNetMLP::softmax(Matrix<float> z) {
-  cout << "Using softmax " << endl;
   Matrix<float> res(z.row_count, z.col_count);
   float sum;
 
@@ -119,7 +116,6 @@ Matrix<float> NeuralNetMLP::softmax(Matrix<float> z) {
 }
 
 Matrix<float> NeuralNetMLP::softmax_prime(Matrix<float> z) {
-  cout << "using softmax prime " << endl;
   Matrix<float> sigm = softmax(z);
   Matrix<float> diff = Matrix<float>(z.row_count, z.col_count, 1.0);
 
@@ -135,25 +131,32 @@ Matrix<float> NeuralNetMLP::softmax_prime(Matrix<float> z) {
 }
 
 float NeuralNetMLP::categorical_cross_entropy_loss(Matrix<float> output_activations, Matrix<float> y_onehot) {
-  return 0.0;
+  float sum = 0.0;
+
+  for(int i=0; i < y_onehot.row_count; i++) {
+    for(int j=0; j < y_onehot.col_count; j++) {
+      sum += y_onehot[i][j] * log(output_activations[i][j]);
+    }
+  }
+
+  return -sum / (y_onehot.row_count);
 }
 
 Matrix<float> NeuralNetMLP::categorical_cross_entropy_loss_prime(Matrix<float> output_activations, Matrix<float> y_onehot) {
-  return Matrix<float>({{0.0}});
+  return (output_activations - y_onehot);
 }
 
 float NeuralNetMLP::mse_loss(Matrix<float> output_activations, Matrix<float> y_onehot) {
   Matrix<float> loss = (y_onehot - output_activations);
+  float sum = 0.0;
 
-  transform(loss.data.begin(), loss.data.end(), loss.data.begin(), [](vector<float> m) {
-    transform(m.begin(), m.end(), m.begin(), [](float n) {
-      return n * n;
-    });
+  for(int i=0; i < loss.row_count; i++) {
+    for(int j=0; j < loss.col_count; j++) {
+      sum += loss[i][j] * loss[i][j];
+    }
+  }
 
-    return m;
-  });
-
-  return loss.mean();
+  return sum / loss.row_count;
 }
 
 Matrix<float> NeuralNetMLP::mse_loss_prime(Matrix<float> output_activations, Matrix<float> y_onehot) {
