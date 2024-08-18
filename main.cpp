@@ -26,7 +26,7 @@ int main() {
   Matrix<float> x(data);
 
   cout << "sigmoid res: " << endl;
-  nn.forward(x, NeuralNetMLP::sigmoid);
+  nn.forward(x);
 
   cout << "Output Activations: " << endl;
   nn.output_activations.shape();
@@ -51,7 +51,7 @@ int main() {
   cout << nn.hidden_activations[0] << endl;
 
   cout << "softmax res: " << endl;
-  nn.forward(x, NeuralNetMLP::softmax);
+  nn.forward(x);
   cout << nn.hidden_activations[0] << endl;
 
   cout << nn.output_activations << endl;
@@ -102,11 +102,11 @@ int main() {
 
   nn.backward(x, y_onehot);
 
-  NeuralNetMLP test(4, 3, layer_counts);
+  NeuralNetMLP test(4, 3, layer_counts, "softmax");
 
   cout << endl;
   for(int i=0; i < 10; i++) {
-    test.forward(x, NeuralNetMLP::sigmoid);
+    test.forward(x);
     test.backward(x, y_onehot, 0.01);
 
     cout << "Iteration " << i << " MSE Loss: " << test.mse_loss(test.output_activations, y_onehot) << endl;

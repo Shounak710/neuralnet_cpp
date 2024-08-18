@@ -48,7 +48,7 @@ class NeuralNetMLP {
     Matrix<float> biases_output, weights_output, output_weighted_inputs, output_activations;
     std::vector<Matrix<float>> biases_hidden, weights_hidden, hidden_weighted_inputs, hidden_activations;
     
-    void forward(Matrix<float> x, Matrix<float> (*activation_function)(Matrix<float>));
+    void forward(Matrix<float> x);
     void backward(Matrix<float> x, Matrix<float> y_onehot, float learning_rate=0.01);
 
     Matrix<float> (*activation_function)(Matrix<float> z);

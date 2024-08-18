@@ -16,7 +16,7 @@ Matrix<float> NeuralNetMLP::int_to_onehot(vector<int> y) {
   return y_onehot;
 }
 
-void NeuralNetMLP::forward(Matrix<float> x, Matrix<float> (*activation_function)(Matrix<float>)) {  
+void NeuralNetMLP::forward(Matrix<float> x) {  
   Matrix<float> prev_weights;
 
   for(int i=0; i < num_hidden.size(); i++) {
@@ -39,8 +39,7 @@ void NeuralNetMLP::forward(Matrix<float> x, Matrix<float> (*activation_function)
 }
 
 void NeuralNetMLP::backward(Matrix<float> x, Matrix<float> y_onehot, float learning_rate) {
-  Matrix<float> lp = loss_function_prime(output_activations, y_onehot);
-  Matrix<float> delta =  (activation_function_prime(output_weighted_inputs)).el_mult(lp);
+  Matrix<float> delta =  (activation_function_prime(output_weighted_inputs)) * (loss_function_prime(output_activations, y_onehot));
 
   /* cout << "initiating backpropagation" << endl;
 
@@ -53,7 +52,6 @@ void NeuralNetMLP::backward(Matrix<float> x, Matrix<float> y_onehot, float learn
   biases_output = biases_output - delta.scalar_mult(learning_rate);
   weights_output = weights_output - (delta.Tr() * weights_hidden[weights_hidden.size()-1].Tr()).scalar_mult(learning_rate);
 
-  cout << "delta shape: " << delta.shape() << " biases_output_shape: " << biases_output.shape() << " weight shape: " << weights_output.shape() << endl;
   // cout << "output weight shape: " << weights_output.shape();
 
   for(int i=weights_hidden.size() - 2; i >= 0; i--) {
@@ -64,7 +62,6 @@ void NeuralNetMLP::backward(Matrix<float> x, Matrix<float> y_onehot, float learn
       weight = weights_hidden[i + 2];
     }
 
-    cout << "delta shape: " << delta.shape() << " weights_hidden_shape: " << hidden_weighted_inputs[i+1].shape() << " weight shape: " << weight.shape() << endl;
     delta = activation_function_prime(hidden_weighted_inputs[i+1]).Tr() * delta * weight;
     
     weights_hidden[i+1] = weights_hidden[i+1] - (delta.Tr() * hidden_activations[i]).scalar_mult(learning_rate);
@@ -78,6 +75,7 @@ void NeuralNetMLP::backward(Matrix<float> x, Matrix<float> y_onehot, float learn
 }
 
 Matrix<float> NeuralNetMLP::sigmoid(Matrix<float> z) {
+  cout << "Using sigmoid " << endl;
   Matrix<float> res(z.row_count, z.col_count);
 
   for(int i=0; i < z.row_count; i++) {
@@ -90,16 +88,18 @@ Matrix<float> NeuralNetMLP::sigmoid(Matrix<float> z) {
 }
 
 Matrix<float> NeuralNetMLP::sigmoid_prime(Matrix<float> z) {
+  cout << "Using sigmoid prime " << endl;
   Matrix<float> sigm = sigmoid(z);
   Matrix<float> diff = Matrix<float>(z.row_count, z.col_count, 1.0) - sigm;
 
-  cout << "sigm size: " << sigm.shape() << endl;
-  cout << "diff size: " << diff.shape() << endl;
+  // cout << "sigm size: " << sigm.shape() << endl;
+  // cout << "diff size: " << diff.shape() << endl;
 
-  return sigm.el_mult(diff);
+  return sigm * (diff.Tr());
 }
 
 Matrix<float> NeuralNetMLP::softmax(Matrix<float> z) {
+  cout << "Using softmax " << endl;
   Matrix<float> res(z.row_count, z.col_count);
   float sum;
 
@@ -119,7 +119,19 @@ Matrix<float> NeuralNetMLP::softmax(Matrix<float> z) {
 }
 
 Matrix<float> NeuralNetMLP::softmax_prime(Matrix<float> z) {
-  return Matrix<float>(1, 1);
+  cout << "using softmax prime " << endl;
+  Matrix<float> sigm = softmax(z);
+  Matrix<float> diff = Matrix<float>(z.row_count, z.col_count, 1.0);
+
+  for(int i=0; i < z.row_count; i++) {
+    for(int j=0; j < z.col_count; j++) {
+      if(i != j) diff[i][j] = 0;
+    }
+  }
+  // cout << "sigm size: " << sigm.shape() << endl;
+  // cout << "diff size: " << diff.shape() << endl;
+
+  return sigm * ((diff - sigm).Tr());
 }
 
 float NeuralNetMLP::categorical_cross_entropy_loss(Matrix<float> output_activations, Matrix<float> y_onehot) {
