@@ -127,7 +127,8 @@ Matrix<float> NeuralNetMLP::softmax_prime(Matrix<float> z) {
   // cout << "sigm size: " << sigm.shape() << endl;
   // cout << "diff size: " << diff.shape() << endl;
 
-  return sigm * ((diff - sigm).Tr());
+  diff = diff - sigm;
+  return sigm  * (diff.Tr());
 }
 
 float NeuralNetMLP::categorical_cross_entropy_loss(Matrix<float> output_activations, Matrix<float> y_onehot) {
