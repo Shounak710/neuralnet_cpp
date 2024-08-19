@@ -20,6 +20,17 @@ struct Matrix {
         if (row_count > 0) col_count = data[0].size();
     }
 
+    void update_shape() {
+        // After directly pushing into data vector, matrix shape should be updated too
+        row_count = data.size();
+
+        if(data.size() > 0) {
+            col_count = data[0].size();
+        } else {
+            col_count = 0;
+        }
+    }
+
     std::vector<T>& operator[](size_t row) {
         return data[row];
     }
