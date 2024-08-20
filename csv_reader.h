@@ -9,19 +9,8 @@
 
 class CSVReader {
   private:
-    const char delimiter;
+    char delimiter;
     std::ifstream file;
-
-    std::vector<std::string> split(const std::string& str) {
-        std::vector<std::string> tokens;
-        std::string token;
-        std::istringstream tokenStream(str);
-
-        while (getline(tokenStream, token, delimiter)) {
-            tokens.push_back(token);
-        }
-        return tokens;
-    }
 
     inline std::vector<float> line_to_vec(std::string& line) {
       std::vector<float> res;
@@ -36,7 +25,20 @@ class CSVReader {
       return res;
     }
 
+    std::vector<std::string> split(const std::string& str) {
+        std::vector<std::string> tokens;
+        std::string token;
+        std::istringstream tokenStream(str);
+
+        while (getline(tokenStream, token, delimiter)) {
+            tokens.push_back(token);
+        }
+        return tokens;
+    }
+
   public:
+    CSVReader() {}
+
     CSVReader(const std::string& filename, char delimiter=','): delimiter(delimiter), file(filename) {
       if (!file.is_open()) {
         throw std::runtime_error("Could not open the file: " + filename);
