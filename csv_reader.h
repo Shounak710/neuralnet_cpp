@@ -23,6 +23,19 @@ class CSVReader {
         return tokens;
     }
 
+    inline std::vector<float> line_to_vec(std::string& line) {
+      std::vector<float> res;
+
+      std::vector<std::string> row = split(line);
+      if(res.size() != row.size()) res.resize(row.size());
+
+      transform(row.begin(), row.end(), res.begin(), [](std::string& s) {
+        return std::stof(s);
+      });
+
+      return res;
+    }
+
   public:
     CSVReader(const std::string& filename, char delimiter=','): delimiter(delimiter), file(filename) {
       if (!file.is_open()) {
@@ -45,34 +58,27 @@ class CSVReader {
         getline(file, line);
         count += 1;
       }
+
+      return line_to_vec(line);    
     }
 
     Matrix<float> readCSV() {
       std::vector<std::vector<float>> data;
       std::string line;
 
-      std::vector<float> res;
-
       while (getline(file, line)) {
-        std::vector<std::string> row = split(line);
-        if(res.size() != row.size()) res.resize(row.size());
-
-        transform(row.begin(), row.end(), res.begin(), [](std::string& s) {
-          return std::stof(s);
-        });
-
-        data.push_back(res);
+        data.push_back(line_to_vec(line));
       }
 
       return Matrix<float>(data);
     }
 
-    void move_to_beginning_of_file() {
+    inline void move_to_beginning_of_file() {
       file.clear();  // Clear the EOF flag
       file.seekg(0, std::ios::beg);  // Go to the beginning of the file
     }
 
-    int get_line_count() {
+    inline int get_line_count() {
       int count = 0;
 
       move_to_beginning_of_file();
@@ -84,7 +90,7 @@ class CSVReader {
       return count;
     }
 
-    int get_col_count(const std::string& filename) {
+    inline int get_col_count(const std::string& filename) {
       int size = 0;
       std::string line;
 
