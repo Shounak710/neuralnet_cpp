@@ -30,7 +30,7 @@ struct Dataset {
     std::vector<int> train_indices, test_indices;
     std::string dataset_filepath, labels_filepath;
 
-    Dataset() {}
+    // Dataset() {}
 
     Dataset(const std::string& dataset_filepath, const std::string& labels_filepath, const char& delimiter=','): dataset_filepath(dataset_filepath),
     labels_filepath(labels_filepath), delimiter(delimiter) {

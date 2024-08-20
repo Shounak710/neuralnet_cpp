@@ -11,8 +11,10 @@ using namespace std;
 
 int main() {
   string dataset_filename="image_data.csv", labels_filename="labels.csv";
-  CSVReader dataset_reader(dataset_filename);
-  CSVReader labels_reader(labels_filename);
+  // CSVReader dataset_reader(dataset_filename);
+  // CSVReader labels_reader(labels_filename);
+
+  // labels_reader.read_line_number(45);
   vector<int>layer_counts = {3, 5, 6, 7};
 
   Dataset ds(dataset_filename, labels_filename);

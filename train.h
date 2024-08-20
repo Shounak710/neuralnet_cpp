@@ -36,9 +36,13 @@ struct Train {
 
     std::tuple<Matrix<float>, Matrix<float>> readBatch() {
       Matrix<float> batch_dataset, batch_label;
-      cout << "last read index: " << last_read_index << endl;
+      // cout << "last read index: " << last_read_index << endl;
+
       for(int i=0; i < batch_size; i++) {
         if(last_read_index == dataset->train_indices.size()-1) break;
+
+        // cout << "i: " << i << endl;
+        // cout << "label size: " << label_reader.read_line_number(dataset->train_indices[last_read_index+1]).size() << endl;
 
         batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
         batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
@@ -48,7 +52,7 @@ struct Train {
 
       batch_dataset.update_shape();
       batch_label.update_shape();
-
+      cout << "here" << endl;
       return std::make_tuple(batch_dataset, batch_label);
     }
 
@@ -59,9 +63,7 @@ struct Train {
     std::vector<float> losses;
 
     Train(NeuralNetMLP* model, Dataset* dataset, int num_epochs, int batch_size=500, float train_test_split_size = 0.2): model(model),
-    dataset(dataset), num_epochs(num_epochs), batch_size(batch_size) {
-      CSVReader dataset_reader(dataset->dataset_filepath);
-      CSVReader label_reader(dataset->labels_filepath);
+    dataset(dataset), num_epochs(num_epochs), batch_size(batch_size), dataset_reader(dataset->dataset_filepath), label_reader(dataset->labels_filepath) {
 
       dataset->train_test_split_indices(train_test_split_size);
     }
@@ -72,14 +74,16 @@ struct Train {
       for(int i=0; i < num_epochs; i++) {
         std::cout << "Training epoch " << i << " #####################" << std::endl;
 
-        cout << "last read index: " << last_read_index << " dtis: " << dataset->train_indices.size() << endl;
+        // cout << "last read index: " << last_read_index << " dtis: " << dataset->train_indices.size() << endl;
+        cout << "training set size: " << dataset->train_indices.size() << endl;
         
-        std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
+        // std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
         // y_onehot = dataset->int_to_onehot(std::get<1>(data)[0]);
         // cout << "batch size: " << batch_size << " y_onehot shape: " << y_onehot.shape() << endl;
 
-        while(last_read_index < dataset->train_indices.size()) {
+        while(last_read_index < (int) dataset->train_indices.size()) {
           std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
+          cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
           y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
           cout << "y onehot shape: " << y_onehot.shape() << endl;
 

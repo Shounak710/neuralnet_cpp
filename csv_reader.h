@@ -10,6 +10,7 @@
 class CSVReader {
   private:
     char delimiter;
+    std::string filename;
     std::ifstream file;
 
     inline std::vector<float> line_to_vec(std::string& line) {
@@ -37,9 +38,9 @@ class CSVReader {
     }
 
   public:
-    CSVReader() {}
+    // CSVReader() {}
 
-    CSVReader(const std::string& filename, char delimiter=','): delimiter(delimiter), file(filename) {
+    CSVReader(const std::string& filename, char delimiter=','): delimiter(delimiter), filename(filename), file(filename) {
       if (!file.is_open()) {
         throw std::runtime_error("Could not open the file: " + filename);
       }
