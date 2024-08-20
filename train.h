@@ -55,8 +55,9 @@ struct Train {
 
   void train(float learning_rate = 0.01) {
     Matrix<float> y_onehot;
-    
+
     for(int i=0; i < num_epochs; i++) {
+      std::cout << "Training epoch " << i << " #####################" << std::endl;
       get_train_test_indices();
 
       while(last_read_index < training_data_line_numbers.size()) {
@@ -68,7 +69,9 @@ struct Train {
       }
 
       last_read_index = -1;
-      losses.push_back(model->loss_function(model->output_activations, y_onehot));
+      float loss = model->loss_function(model->output_activations, y_onehot);
+      std::cout << "Loss after epoch " << i << ": " << std::to_string(loss) << std::endl;
+      losses.push_back(loss);
     }
   }
 };
