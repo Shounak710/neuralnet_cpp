@@ -17,20 +17,31 @@ struct Train {
 
     int last_read_index = -1;
 
-    void get_train_test_indices() {
-      std::tuple<std::vector<int>, std::vector<int>> train_test_indices = dataset->train_test_split_indices();
-      training_data_line_numbers = std::get<0>(train_test_indices);
-      test_data_line_numbers = std::get<1>(train_test_indices);
+    // void get_train_test_indices() {
+    //   std::tuple<std::vector<int>, std::vector<int>> train_test_indices = dataset->train_test_split_indices(train_test_split_size);
+    //   training_data_line_numbers = std::get<0>(train_test_indices);
+    //   test_data_line_numbers = std::get<1>(train_test_indices);
+    // }
+
+    Matrix<float> int_to_onehot(Matrix<float> y, int num_classes) {
+      
+      Matrix<float> y_onehot(y.row_count, num_classes);
+
+      for(int i=0; i < y.row_count; i++) {
+        y_onehot[i][y[i][0]] = 1;
+      }
+
+      return y_onehot;
     }
 
     std::tuple<Matrix<float>, Matrix<float>> readBatch() {
       Matrix<float> batch_dataset, batch_label;
-      
+      cout << "last read index: " << last_read_index << endl;
       for(int i=0; i < batch_size; i++) {
-        if(last_read_index == training_data_line_numbers.size()-1) break;
+        if(last_read_index == dataset->train_indices.size()-1) break;
 
-        batch_dataset.data.push_back(dataset_reader.read_line_number(training_data_line_numbers[last_read_index+1]));
-        batch_label.data.push_back(label_reader.read_line_number(training_data_line_numbers[last_read_index+1]));
+        batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
+        batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
 
         last_read_index += 1;
       }
@@ -51,6 +62,8 @@ struct Train {
     dataset(dataset), num_epochs(num_epochs), batch_size(batch_size) {
       CSVReader dataset_reader(dataset->dataset_filepath);
       CSVReader label_reader(dataset->labels_filepath);
+
+      dataset->train_test_split_indices(train_test_split_size);
     }
 
     void train(float learning_rate = 0.01) {
@@ -58,12 +71,19 @@ struct Train {
 
       for(int i=0; i < num_epochs; i++) {
         std::cout << "Training epoch " << i << " #####################" << std::endl;
-        get_train_test_indices();
 
-        while(last_read_index < training_data_line_numbers.size()) {
+        cout << "last read index: " << last_read_index << " dtis: " << dataset->train_indices.size() << endl;
+        
+        std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
+        // y_onehot = dataset->int_to_onehot(std::get<1>(data)[0]);
+        // cout << "batch size: " << batch_size << " y_onehot shape: " << y_onehot.shape() << endl;
+
+        while(last_read_index < dataset->train_indices.size()) {
           std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
-          y_onehot = dataset->int_to_onehot(std::get<1>(data)[0]);
+          y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
+          cout << "y onehot shape: " << y_onehot.shape() << endl;
 
+          // std::cout << std::get<0>(data).shape() << std::endl;
           model->forward(std::get<0>(data));
           model->backward(std::get<0>(data), y_onehot, learning_rate);
         }
@@ -72,6 +92,8 @@ struct Train {
         float loss = model->loss_function(model->output_activations, y_onehot);
         std::cout << "Loss after epoch " << i << ": " << std::to_string(loss) << std::endl;
         losses.push_back(loss);
+
+        dataset->shuffle_indices(dataset->train_indices);
       }
     }
 };
