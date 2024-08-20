@@ -32,13 +32,15 @@ struct Dataset {
       y = y_copy;
     }
 
-    int countUniqueValues(const std::vector<float>& vec) {
+    int countUniqueValues(const Matrix<float>& labels) {
       // Create a set to store unique values
       std::set<int> unique_values;
 
       // Insert each value from the vector into the set
-      for (int value : vec) {
+      for (vector<float> row : labels.data) {
+        for(float value : row) {
           unique_values.insert(value);
+        }
       }
 
       // The size of the set is the count of unique values
@@ -47,6 +49,7 @@ struct Dataset {
   
   public:
     char delimiter;
+    int num_classes;
     std::string dataset_filepath, labels_filepath;
     Matrix<float> X, y;
 
@@ -56,10 +59,21 @@ struct Dataset {
     }
 
     void get_data() {
-      CSVReader reader(delimiter);
+      X = CSVReader(dataset_filepath, delimiter).readCSV();
+      y = CSVReader(labels_filepath, delimiter).readCSV();
 
-      X = reader.readCSV(dataset_filepath);
-      y = reader.readCSV(labels_filepath);
+      num_classes = countUniqueValues(y);
+    }
+
+    Matrix<float> int_to_onehot(std::vector<float> y) {
+      
+      Matrix<float> y_onehot(y.size(), num_classes);
+
+      for(int i=0; i < y.size(); i++) {
+        y_onehot[i][y[i]] = 1;
+      }
+
+      return y_onehot;
     }
 
     std::tuple<Matrix<float>, Matrix<float>, Matrix<float>, Matrix<float>> train_test_split(float test_size=0.2) {
@@ -75,16 +89,5 @@ struct Dataset {
       y_test = Matrix<float>(std::vector<std::vector<float>>(y.data.begin() + split_point, y.data.end()));
 
       return std::make_tuple(X_train, y_train, X_test, y_test);
-    }
-
-    Matrix<float> int_to_onehot(std::vector<float> y) {
-      
-      Matrix<float> y_onehot(y.size(), countUniqueValues(y));
-
-      for(int i=0; i < y.size(); i++) {
-        y_onehot[i][y[i]] = 1;
-      }
-
-      return y_onehot;
     }
 };
