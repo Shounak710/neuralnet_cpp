@@ -38,20 +38,28 @@ struct Train {
       Matrix<float> batch_dataset, batch_label;
       // cout << "last read index: " << last_read_index << endl;
 
-      for(int i=0; i < batch_size; i++) {
+      for(int i=0; i < 1; i++) {
         if(last_read_index == dataset->train_indices.size()-1) break;
 
-        // cout << "i: " << i << endl;
+        cout << "i: " << i << endl;
         // cout << "label size: " << label_reader.read_line_number(dataset->train_indices[last_read_index+1]).size() << endl;
 
-        batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
-        batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
+        // batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
+        // batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
+
+        auto line_1 = dataset_reader.read_next_line();
+        if(i==0) cout << "line 1 size: " << line_1.size() << endl;
+
+        batch_dataset.data.push_back(line_1);
+        batch_label.data.push_back(label_reader.read_next_line());
 
         last_read_index += 1;
       }
 
       batch_dataset.update_shape();
       batch_label.update_shape();
+
+      cout << "batch data set shape: " << batch_dataset.data[0].size() << endl;
       cout << "here" << endl;
       return std::make_tuple(batch_dataset, batch_label);
     }
@@ -70,6 +78,9 @@ struct Train {
 
     void train(float learning_rate = 0.01) {
       Matrix<float> y_onehot;
+
+      dataset_reader.move_to_beginning_of_file();
+      label_reader.move_to_beginning_of_file();
 
       for(int i=0; i < num_epochs; i++) {
         std::cout << "Training epoch " << i << " #####################" << std::endl;

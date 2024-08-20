@@ -50,18 +50,27 @@ class CSVReader {
       if(file.is_open()) file.close();
     }
 
-    std::vector<float> read_line_number(size_t line_number) {
-      std::vector<float> res;
-      int count = 0;
-      std::string line;
-
+    void go_to_line(unsigned int num){
       move_to_beginning_of_file();
 
-      while(count != line_number) {
-        getline(file, line);
-        count += 1;
+      for(int i=0; i < num - 1; ++i){
+        file.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
       }
+    }
 
+    std::vector<float> read_line_number(size_t line_number) {
+      std::string line;
+
+      go_to_line(line_number);
+      getline(file, line);
+
+      return line_to_vec(line);    
+    }
+
+    std::vector<float> read_next_line() {
+      std::string line;
+
+      getline(file, line);
       return line_to_vec(line);    
     }
 
