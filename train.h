@@ -48,7 +48,11 @@ struct Train {
         // batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
 
         auto line_1 = dataset_reader.read_next_line();
-        if(i==0) cout << "line 1 size: " << line_1.size() << endl;
+        cout << "line" << endl;
+        if(i==0) {
+          for(auto i : line_1) cout << i << " ";
+        }
+        cout << endl;
 
         batch_dataset.data.push_back(line_1);
         batch_label.data.push_back(label_reader.read_next_line());

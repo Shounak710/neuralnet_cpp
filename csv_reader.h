@@ -13,26 +13,13 @@ class CSVReader {
     std::string filename;
     std::ifstream file;
 
-    inline std::vector<float> line_to_vec(std::string& line) {
-      std::vector<float> res;
-
-      std::vector<std::string> row = split(line);
-      if(res.size() != row.size()) res.resize(row.size());
-
-      transform(row.begin(), row.end(), res.begin(), [](std::string& s) {
-        return std::stof(s);
-      });
-
-      return res;
-    }
-
-    std::vector<std::string> split(const std::string& str) {
-        std::vector<std::string> tokens;
+    inline std::vector<float> split(const std::string& str) {
+        std::vector<float> tokens;
         std::string token;
         std::istringstream tokenStream(str);
 
         while (getline(tokenStream, token, delimiter)) {
-            tokens.push_back(token);
+            tokens.push_back(std::stof(token));
         }
         return tokens;
     }
@@ -71,7 +58,7 @@ class CSVReader {
       std::string line;
 
       getline(file, line);
-      return line_to_vec(line);    
+      return split(line);    
     }
 
     Matrix<float> readCSV() {
@@ -79,7 +66,7 @@ class CSVReader {
       std::string line;
 
       while (getline(file, line)) {
-        data.push_back(line_to_vec(line));
+        data.push_back(split(line));
       }
 
       return Matrix<float>(data);
@@ -109,7 +96,7 @@ class CSVReader {
       move_to_beginning_of_file();
 
       getline(file, line);
-      std::vector<std::string> row = split(line);
+      std::vector<float> row = split(line);
 
       return row.size();
     }
