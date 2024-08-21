@@ -19,6 +19,9 @@ int main() {
 
   Dataset ds(dataset_filename, labels_filename);
 
+  cout << "first line" << endl;
+  cout << CSVReader(dataset_filename).read_line_number(1).size() << endl;
+
   NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts);
 
   Train t(&nn, &ds, 10, 5000);

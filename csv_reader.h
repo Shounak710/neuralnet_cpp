@@ -24,9 +24,15 @@ class CSVReader {
         return tokens;
     }
 
-  public:
-    // CSVReader() {}
+    void go_to_line(unsigned int num){
+      move_to_beginning_of_file();
 
+      for(int i=0; i < num - 1; i++){
+        file.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+      }
+    }
+
+  public:
     CSVReader(const std::string& filename, char delimiter=','): delimiter(delimiter), filename(filename), file(filename) {
       if (!file.is_open()) {
         throw std::runtime_error("Could not open the file: " + filename);
@@ -37,21 +43,15 @@ class CSVReader {
       if(file.is_open()) file.close();
     }
 
-    void go_to_line(unsigned int num){
-      move_to_beginning_of_file();
-
-      for(int i=0; i < num - 1; ++i){
-        file.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-      }
-    }
-
     std::vector<float> read_line_number(size_t line_number) {
+      if(line_number < 1) throw std::runtime_error("Line number should be greater than 0. Received: " + to_string(line_number));
+
       std::string line;
 
       go_to_line(line_number);
       getline(file, line);
 
-      return line_to_vec(line);    
+      return split(line);    
     }
 
     std::vector<float> read_next_line() {
