@@ -42,7 +42,11 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       prev_weights = hidden_activations[i-1];
     }
 
-    if(biases_hidden[i].row_count != prev_weights.row_count && biases_hidden[i].col_count != weights_hidden[i].row_count) {
+    cout << "bhi ac size: " << biases_hidden[i].shape() << endl;
+    cout << "pw ac size: " << prev_weights.shape() << endl;
+    cout << "whi ac size: " << weights_hidden[i].shape() << endl;
+
+    if((biases_hidden[i].row_count != prev_weights.row_count) || (biases_hidden[i].col_count != weights_hidden[i].row_count)) {
       biases_hidden[i] = Matrix<double>(prev_weights.row_count, weights_hidden[i].row_count);
 
       if(contains_nan(biases_hidden[i])) {
@@ -53,9 +57,14 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       }
     }
 
+    cout << "i: " << i << endl;
+    cout << "bhi size: " << biases_hidden[i].shape() << endl;
+    cout << "pw size: " << (prev_weights).shape() << endl;
+    cout << "whi size: " << weights_hidden[i].Tr().shape() << endl;
+
     hidden_weighted_inputs[i] = prev_weights * weights_hidden[i].Tr() + biases_hidden[i];
     hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
-
+    
     if(contains_nan(hidden_weighted_inputs[i]) || contains_nan(hidden_activations[i])) {
       cout << "i: " << i << endl;
       cout << "hwi: " << hidden_weighted_inputs[i] << endl;
@@ -65,7 +74,7 @@ void NeuralNetMLP::forward(Matrix<double> x) {
     }
   }
 
-  if(biases_output.row_count != hidden_activations[hidden_activations.size()-1].row_count && biases_output.col_count != weights_output.row_count) {
+  if((biases_output.row_count != hidden_activations[hidden_activations.size()-1].row_count) || (biases_output.col_count != weights_output.row_count)) {
     biases_output = Matrix<double>(hidden_activations[hidden_activations.size()-1].row_count, weights_output.row_count);
 
     if(contains_nan(biases_output)) {
@@ -75,6 +84,10 @@ void NeuralNetMLP::forward(Matrix<double> x) {
     }
   }
   
+  cout << "haha size: " << hidden_activations[hidden_activations.size()-1].shape() << endl;
+  cout << "wotr size: " << weights_output.Tr().shape() << endl;
+  cout << "bo size: " << biases_output.shape() << endl;
+
   output_weighted_inputs = hidden_activations[hidden_activations.size()-1] * weights_output.Tr() + biases_output;
 
   if(contains_nan(output_weighted_inputs)) {
