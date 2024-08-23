@@ -12,11 +12,11 @@
 
 struct Dataset {
   private:
-    int countUniqueValues(const Matrix<float>& labels) {
+    int countUniqueValues(const Matrix<double>& labels) {
       std::set<int> unique_values;
 
-      for (vector<float> row : labels.data) {
-        for(float value : row) {
+      for (vector<double> row : labels.data) {
+        for(double value : row) {
           unique_values.insert(value);
         }
       }
@@ -33,23 +33,12 @@ struct Dataset {
     Dataset(const std::string& dataset_filepath, const std::string& labels_filepath, const char& delimiter=','): dataset_filepath(dataset_filepath),
     labels_filepath(labels_filepath), delimiter(delimiter) {
       CSVReader dataset_reader(dataset_filepath);
-      Matrix<float> y = CSVReader(labels_filepath, delimiter).readCSV();
+      Matrix<double> y = CSVReader(labels_filepath, delimiter).readCSV();
       
       num_classes = countUniqueValues(y);
       num_rows = y.data.size();
       num_features = dataset_reader.read_line_number(1).size();
     }
-
-    // Matrix<float> int_to_onehot(std::vector<float> y) {
-      
-    //   Matrix<float> y_onehot(num_rows, num_classes);
-
-    //   for(int i=0; i < y.size(); i++) {
-    //     y_onehot[i][y[i]] = 1;
-    //   }
-
-    //   return y_onehot;
-    // }
 
     static void shuffle_indices(vector<int>& indices) {
       std::random_device rd;

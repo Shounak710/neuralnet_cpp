@@ -13,8 +13,8 @@ class CSVReader {
     std::string filename;
     std::ifstream file;
 
-    inline std::vector<float> split(const std::string& str) {
-        std::vector<float> tokens;
+    inline std::vector<double> split(const std::string& str) {
+        std::vector<double> tokens;
         std::string token;
         std::istringstream tokenStream(str);
 
@@ -43,7 +43,7 @@ class CSVReader {
       if(file.is_open()) file.close();
     }
 
-    std::vector<float> read_line_number(size_t line_number) {
+    std::vector<double> read_line_number(size_t line_number) {
       if(line_number < 1) throw std::runtime_error("Line number should be greater than 0. Received: " + to_string(line_number));
 
       std::string line;
@@ -54,22 +54,22 @@ class CSVReader {
       return split(line);    
     }
 
-    std::vector<float> read_next_line() {
+    std::vector<double> read_next_line() {
       std::string line;
 
       getline(file, line);
-      return split(line);    
+      return split(line);
     }
 
-    Matrix<float> readCSV() {
-      std::vector<std::vector<float>> data;
+    Matrix<double> readCSV() {
+      std::vector<std::vector<double>> data;
       std::string line;
 
       while (getline(file, line)) {
         data.push_back(split(line));
       }
 
-      return Matrix<float>(data);
+      return Matrix<double>(data);
     }
 
     inline void move_to_beginning_of_file() {
@@ -96,7 +96,7 @@ class CSVReader {
       move_to_beginning_of_file();
 
       getline(file, line);
-      std::vector<float> row = split(line);
+      std::vector<double> row = split(line);
 
       return row.size();
     }

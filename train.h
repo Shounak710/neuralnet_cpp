@@ -23,9 +23,9 @@ struct Train {
     //   test_data_line_numbers = std::get<1>(train_test_indices);
     // }
 
-    Matrix<float> int_to_onehot(Matrix<float> y, int num_classes) {
+    Matrix<double> int_to_onehot(Matrix<float> y, int num_classes) {
       
-      Matrix<float> y_onehot(y.row_count, num_classes);
+      Matrix<double> y_onehot(y.row_count, num_classes);
 
       for(int i=0; i < y.row_count; i++) {
         y_onehot[i][y[i][0]] = 1;
@@ -34,28 +34,28 @@ struct Train {
       return y_onehot;
     }
 
-    std::tuple<Matrix<float>, Matrix<float>> readBatch() {
-      Matrix<float> batch_dataset, batch_label;
+    std::tuple<Matrix<double>, Matrix<float>> readBatch() {
+      Matrix<double> batch_dataset;
+      Matrix<float> batch_label;
       // cout << "last read index: " << last_read_index << endl;
 
-      for(int i=0; i < 1; i++) {
+      for(int i=0; i < batch_size; i++) {
         if(last_read_index == dataset->train_indices.size()-1) break;
 
-        cout << "i: " << i << endl;
+        // cout << "i: " << i << endl;
         // cout << "label size: " << label_reader.read_line_number(dataset->train_indices[last_read_index+1]).size() << endl;
 
         // batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
         // batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
 
-        auto line_1 = dataset_reader.read_next_line();
-        cout << "line" << endl;
-        if(i==0) {
-          for(auto i : line_1) cout << i << " ";
-        }
-        cout << endl;
+        batch_dataset.data.push_back(dataset_reader.read_next_line());
 
-        batch_dataset.data.push_back(line_1);
-        batch_label.data.push_back(label_reader.read_next_line());
+        vector<double> y = label_reader.read_next_line();
+        vector<float> y_f(y.size());
+
+        std::transform(y.begin(), y.end(), y_f.begin(), [](double val) { return static_cast<float>(val); });
+
+        batch_label.data.push_back(y_f);
 
         last_read_index += 1;
       }
@@ -81,7 +81,7 @@ struct Train {
     }
 
     void train(float learning_rate = 0.01) {
-      Matrix<float> y_onehot;
+      Matrix<double> y_onehot;
 
       dataset_reader.move_to_beginning_of_file();
       label_reader.move_to_beginning_of_file();
@@ -96,20 +96,26 @@ struct Train {
         // y_onehot = dataset->int_to_onehot(std::get<1>(data)[0]);
         // cout << "batch size: " << batch_size << " y_onehot shape: " << y_onehot.shape() << endl;
 
-        while(last_read_index < (int) dataset->train_indices.size()) {
-          std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
+        while(last_read_index < (int) dataset->train_indices.size()-1) {
+          std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
           cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
           y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
           cout << "y onehot shape: " << y_onehot.shape() << endl;
 
           // std::cout << std::get<0>(data).shape() << std::endl;
           model->forward(std::get<0>(data));
+          cout << "forward done" << endl;
+          
+          cout << "starting backpropagation" << endl;
           model->backward(std::get<0>(data), y_onehot, learning_rate);
+          cout << "backward done" << endl;
         }
 
         last_read_index = -1;
+
+        // cout << "activation size: " << model->output_activations.shape() << endl;
         float loss = model->loss_function(model->output_activations, y_onehot);
-        std::cout << "Loss after epoch " << i << ": " << std::to_string(loss) << std::endl;
+        // std::cout << "Loss after epoch " << i+1 << ": " << std::to_string(loss) << std::endl;
         losses.push_back(loss);
 
         dataset->shuffle_indices(dataset->train_indices);

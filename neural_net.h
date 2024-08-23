@@ -20,8 +20,8 @@ class NeuralNetMLP {
     std::mt19937 gen;
     std::normal_distribution<double> dist;
 
-    Matrix<float> initialize_weights(int row_count, int col_count) {
-      Matrix<float> weights(row_count, col_count);
+    Matrix<double> initialize_weights(int row_count, int col_count) {
+      Matrix<double> weights(row_count, col_count);
 
       for(int j=0; j < row_count; j++) {
         for(int k=0; k < col_count; k++) {
@@ -32,30 +32,30 @@ class NeuralNetMLP {
       return weights;
     }
 
-    static Matrix<float> sigmoid_prime(Matrix<float> z);
-    static Matrix<float> softmax_prime(Matrix<float> z);
-    static Matrix<float> mse_loss_prime(Matrix<float> output_activations, Matrix<float> y_onehot);
-    static Matrix<float> categorical_cross_entropy_loss_prime(Matrix<float> output_activations, Matrix<float> y_onehot);
+    static Matrix<double> sigmoid_prime(Matrix<double> z);
+    static Matrix<double> softmax_prime(Matrix<double> z);
+    static Matrix<double> mse_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
+    static Matrix<double> categorical_cross_entropy_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
 
   public:
-    static Matrix<float> sigmoid(Matrix<float> z);
-    static Matrix<float> softmax(Matrix<float> z);
+    static Matrix<double> sigmoid(Matrix<double> z);
+    static Matrix<double> softmax(Matrix<double> z);
 
-    static float mse_loss(Matrix<float> output_activations, Matrix<float> y_onehot);
-    static float categorical_cross_entropy_loss(Matrix<float> output_activations, Matrix<float> y_onehot);
+    static float mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
+    static float categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
 
-    Matrix<float> int_to_onehot(std::vector<int> y);
-    Matrix<float> biases_output, weights_output, output_weighted_inputs, output_activations;
-    std::vector<Matrix<float>> biases_hidden, weights_hidden, hidden_weighted_inputs, hidden_activations;
+    Matrix<double> int_to_onehot(std::vector<int> y);
+    Matrix<double> biases_output, weights_output, output_weighted_inputs, output_activations;
+    std::vector<Matrix<double>> biases_hidden, weights_hidden, hidden_weighted_inputs, hidden_activations;
     
-    void forward(Matrix<float> x);
-    void backward(Matrix<float> x, Matrix<float> y_onehot, float learning_rate=0.01);
+    void forward(Matrix<double> x);
+    void backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate=0.01);
 
-    Matrix<float> (*activation_function)(Matrix<float> z);
-    Matrix<float> (*activation_function_prime)(Matrix<float> z);
+    Matrix<double> (*activation_function)(Matrix<double> z);
+    Matrix<double> (*activation_function_prime)(Matrix<double> z);
 
-    float (*loss_function)(Matrix<float> output_activations, Matrix<float> y_onehot);
-    Matrix<float> (*loss_function_prime)(Matrix<float> output_activations, Matrix<float> y_onehot);
+    float (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
+    Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);
 
     NeuralNetMLP(int num_classes, int num_features, std::vector<int> num_hidden, std::string activation_type="sigmoid", std::string loss_type="mse"): num_classes(num_classes),
     num_features(num_features), num_hidden(num_hidden), dist(mean, std), gen(rd()) {

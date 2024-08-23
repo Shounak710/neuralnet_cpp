@@ -10,7 +10,7 @@ struct Matrix {
     std::vector<std::vector<T>> data;
     size_t row_count = 0, col_count = 0;
 
-    Matrix(): row_count(0), col_count(0), data({{}}) {}
+    Matrix(): row_count(0), col_count(0) {}
 
     Matrix(int rc, int cc) : row_count(rc), col_count(cc), data(rc, std::vector<T>(cc, 0)) {}
     Matrix(int rc, int cc, T default_val): row_count(rc), col_count(cc), data(rc, std::vector<T>(cc, default_val)) {} 
@@ -127,7 +127,7 @@ struct Matrix {
     }
 
     // Multiply matrix with a scalar
-    Matrix<T> scalar_mult(float s) const {
+    Matrix<T> scalar_mult(float s, bool print=false) const {
         Matrix<T> res(row_count, col_count);
 
         for(int i=0; i < data.size(); i++) {
@@ -136,6 +136,12 @@ struct Matrix {
             });
         }
 
+        if(print){
+            std::cout << "scalar: " << s << std::endl;
+            std::cout << *this << std::endl;
+
+            std::cout << res << std::endl;
+        }
         return res;
     }
 

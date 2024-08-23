@@ -19,14 +19,21 @@ int main() {
 
   Dataset ds(dataset_filename, labels_filename);
 
-  cout << "first line" << endl;
-  cout << CSVReader(dataset_filename).read_line_number(1).size() << endl;
+  // cout << "first line" << endl;
+  // cout << Matrix<float>({CSVReader(dataset_filename).read_line_number(1)}) << endl;
+
+  cout << "num classes: " << ds.num_classes << " num_features: " << ds.num_features << endl;
 
   NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts);
 
-  Train t(&nn, &ds, 10, 5000);
+  Train t(&nn, &ds, 2, 1500, 0.5);
   t.train();
 
+  cout << "losses: " << endl;
+
+  for(auto loss : t.losses) {
+    cout << loss << endl;
+  }
   // // Matrix<float> y = reader.readCSV("image_data.csv");
   // auto split_data = ds.train_test_split(0.5);
   // Matrix<float> X_train = get<0>(split_data);
