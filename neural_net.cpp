@@ -6,11 +6,25 @@
 
 using namespace std;
 
-Matrix<double> NeuralNetMLP::int_to_onehot(vector<int> y) {
-  Matrix<double> y_onehot(y.size(), num_classes);
+Matrix<double> NeuralNetMLP::int_to_onehot(Matrix<float> y) {
+  Matrix<double> y_onehot(y.row_count, num_classes);
 
-  for(int i=0; i < y.size(); i++) {
-    y_onehot[i][y[i]] = 1;
+  for(int i=0; i < y.row_count; i++) {
+    if(y[i].size() == 0) {
+      cout << "y: ";
+      for(auto d : y.data) {
+        for(auto f : d) {
+          cout << f << " ";
+        }
+      }
+      cout << endl;
+    }
+    cout << "entered i: " << i << endl;
+    cout << "y[i] size: " << y[i].size() << endl;
+    cout << "y[i][0]: " << y[i][0] << endl;
+    cout << "y_onehot shape: " << y_onehot.shape() << endl;
+    y_onehot[i][y[i][0]] = 1;
+    cout << "exited i: " << i << endl;
   }
 
   return y_onehot;
@@ -42,10 +56,6 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       prev_weights = hidden_activations[i-1];
     }
 
-    cout << "bhi ac size: " << biases_hidden[i].shape() << endl;
-    cout << "pw ac size: " << prev_weights.shape() << endl;
-    cout << "whi ac size: " << weights_hidden[i].shape() << endl;
-
     if((biases_hidden[i].row_count != prev_weights.row_count) || (biases_hidden[i].col_count != weights_hidden[i].row_count)) {
       biases_hidden[i] = Matrix<double>(prev_weights.row_count, weights_hidden[i].row_count);
 
@@ -56,11 +66,6 @@ void NeuralNetMLP::forward(Matrix<double> x) {
         throw std::runtime_error("fp Nan encountered at inner biases");
       }
     }
-
-    cout << "i: " << i << endl;
-    cout << "bhi size: " << biases_hidden[i].shape() << endl;
-    cout << "pw size: " << (prev_weights).shape() << endl;
-    cout << "whi size: " << weights_hidden[i].Tr().shape() << endl;
 
     hidden_weighted_inputs[i] = prev_weights * weights_hidden[i].Tr() + biases_hidden[i];
     hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
@@ -83,10 +88,6 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       throw std::runtime_error("fp Nan encountered at output biases");
     }
   }
-  
-  cout << "haha size: " << hidden_activations[hidden_activations.size()-1].shape() << endl;
-  cout << "wotr size: " << weights_output.Tr().shape() << endl;
-  cout << "bo size: " << biases_output.shape() << endl;
 
   output_weighted_inputs = hidden_activations[hidden_activations.size()-1] * weights_output.Tr() + biases_output;
 

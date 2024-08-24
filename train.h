@@ -23,16 +23,22 @@ struct Train {
     //   test_data_line_numbers = std::get<1>(train_test_indices);
     // }
 
-    Matrix<double> int_to_onehot(Matrix<float> y, int num_classes) {
-      
-      Matrix<double> y_onehot(y.row_count, num_classes);
+    // Matrix<double> int_to_onehot(Matrix<float> y, int num_classes) {
+    //   cout << "entered y onehot" << endl;
+    //   cout << "num classes: " << num_classes << endl;
+    //   Matrix<double> y_onehot(y.row_count, num_classes);
 
-      for(int i=0; i < y.row_count; i++) {
-        y_onehot[i][y[i][0]] = 1;
-      }
+    //   for(int i=0; i < y.row_count; i++) {
+    //     if((i > y_onehot.row_count-1)) cout << "Seg fault culprit row: " << i << " " << y_onehot.row_count << endl;
+    //     if(((int) y[i][0] > y_onehot.col_count-1)) cout << "Seg fault culprit col: " << (int) y[i][0] << " " << y_onehot.col_count << endl;
+    //     cout << "i: " << i << " y[i][0]: " << (int) y[i][0] << " row count: " << y_onehot.row_count << " col count: " << y_onehot.col_count << endl;
+    //     cout << "el: " << y_onehot[i][(int) y[i][0]] << endl;
+    //     y_onehot[i][(int) y[i][0]] = 1;
+    //   }
 
-      return y_onehot;
-    }
+    //   cout << "exited y onehot" << endl;
+    //   return y_onehot;
+    // }
 
     std::tuple<Matrix<double>, Matrix<float>> readBatch() {
       Matrix<double> batch_dataset;
@@ -99,7 +105,8 @@ struct Train {
         while(last_read_index < (int) dataset->train_indices.size()-1) {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
           cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
-          y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
+          y_onehot = model->int_to_onehot(std::get<1>(data));
+          // y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
           cout << "y onehot shape: " << y_onehot.shape() << endl;
 
           // std::cout << std::get<0>(data).shape() << std::endl;

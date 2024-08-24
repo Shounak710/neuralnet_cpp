@@ -26,7 +26,7 @@ int main() {
 
   NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts);
 
-  Train t(&nn, &ds, 2, 1500, 0.5);
+  Train t(&nn, &ds, 10, 3500, 0.5);
   t.train();
 
   cout << "losses: " << endl;

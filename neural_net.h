@@ -44,7 +44,7 @@ class NeuralNetMLP {
     static float mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
     static float categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
 
-    Matrix<double> int_to_onehot(std::vector<int> y);
+    Matrix<double> int_to_onehot(Matrix<float> y);
     Matrix<double> biases_output, weights_output, output_weighted_inputs, output_activations;
     std::vector<Matrix<double>> biases_hidden, weights_hidden, hidden_weighted_inputs, hidden_activations;
     
