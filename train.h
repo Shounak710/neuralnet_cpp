@@ -48,12 +48,6 @@ struct Train {
       for(int i=0; i < batch_size; i++) {
         if(last_read_index == dataset->train_indices.size()-1) break;
 
-        // cout << "i: " << i << endl;
-        // cout << "label size: " << label_reader.read_line_number(dataset->train_indices[last_read_index+1]).size() << endl;
-
-        // batch_dataset.data.push_back(dataset_reader.read_line_number(dataset->train_indices[last_read_index+1]));
-        // batch_label.data.push_back(label_reader.read_line_number(dataset->train_indices[last_read_index+1]));
-
         batch_dataset.data.push_back(dataset_reader.read_next_line());
 
         vector<double> y = label_reader.read_next_line();
@@ -62,8 +56,6 @@ struct Train {
         std::transform(y.begin(), y.end(), y_f.begin(), [](double val) { return static_cast<float>(val); });
 
         batch_label.data.push_back(y_f);
-
-        last_read_index += 1;
       }
 
       batch_dataset.update_shape();
@@ -89,10 +81,10 @@ struct Train {
     void train(float learning_rate = 0.01) {
       Matrix<double> y_onehot;
 
-      dataset_reader.move_to_beginning_of_file();
-      label_reader.move_to_beginning_of_file();
-
       for(int i=0; i < num_epochs; i++) {
+        dataset_reader.move_to_beginning_of_file();
+        label_reader.move_to_beginning_of_file();
+
         std::cout << "Training epoch " << i << " #####################" << std::endl;
 
         // cout << "last read index: " << last_read_index << " dtis: " << dataset->train_indices.size() << endl;
@@ -104,6 +96,8 @@ struct Train {
 
         while(last_read_index < (int) dataset->train_indices.size()-1) {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
+          last_read_index += batch_size;
+          
           cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
           y_onehot = model->int_to_onehot(std::get<1>(data));
           // y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
