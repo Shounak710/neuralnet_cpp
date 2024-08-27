@@ -76,7 +76,7 @@ class MMapCSVReader {
 
           if (current_line == training_line_numbers[curr_finding_index]) {
             res.push_back(split(std::string(line_start, line_end - line_start), delimiter));
-            std::cout << "Curr line number: " << training_line_numbers[curr_finding_index] << std::endl;
+            // std::cout << "Curr line number: " << training_line_numbers[curr_finding_index] << std::endl;
             curr_finding_index++;
           }
 

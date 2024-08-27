@@ -262,19 +262,22 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
 }
 
 Matrix<double> NeuralNetMLP::softmax_prime(Matrix<double> z) {
-  Matrix<double> sigm = softmax(z);
-  Matrix<double> diff = Matrix<double>(z.row_count, z.col_count, 1.0);
+  Matrix<double> softm = softmax(z);
+  Matrix<double> jacobian = Matrix<double>(z.row_count, z.row_count);
 
   for(int i=0; i < z.row_count; i++) {
     for(int j=0; j < z.col_count; j++) {
-      if(i != j) diff[i][j] = 0;
+      if(i == j) {
+        jacobian[i][j] = softm[i][0] * (1 - softm[i][0]);
+      } else {
+        jacobian[i][j] = -softm[i][0] * softm[j][0];
+      }
     }
   }
-  // cout << "sigm size: " << sigm.shape() << endl;
+  // cout << "softm size: " << sigm.shape() << endl;
   // cout << "diff size: " << diff.shape() << endl;
 
-  diff = diff - sigm;
-  return sigm  * (diff.Tr());
+  return jacobian;
 }
 
 double NeuralNetMLP::categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot) {
@@ -283,10 +286,10 @@ double NeuralNetMLP::categorical_cross_entropy_loss(Matrix<double> output_activa
 
   for(int i=0; i < y_onehot.row_count; i++) {
     for(int j=0; j < y_onehot.col_count; j++) {
-      cout << "y onehot ij: " << y_onehot[i][j] << endl;
+      /*cout << "y onehot ij: " << y_onehot[i][j] << endl;
       cout << "output act: " << output_activations[i][j] << endl;
       cout << "log oa: " << log(output_activations[i][j]) << endl;
-      cout << "sum add: " << y_onehot[i][j] * log(max(epsilon, output_activations[i][j])) << endl;
+      cout << "sum add: " << y_onehot[i][j] * log(max(epsilon, output_activations[i][j])) << endl;*/
       sum += y_onehot[i][j] * log(max(epsilon, output_activations[i][j]));
     }
   }

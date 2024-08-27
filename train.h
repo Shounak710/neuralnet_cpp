@@ -46,11 +46,13 @@ struct Train {
     // }
 
     void load_training_data() {
+      cout << "loading training data" << endl;
       vector<vector<double>> td = dataset_reader.getlines_from_mmap(dataset->train_line_numbers);
 
       for(int i=0; i < dataset->train_line_numbers.size(); i++) {
         training_data[dataset->train_line_numbers[i]] = td[i];
       }
+      cout << "completed loading training data" << endl;
     }
 
     std::tuple<Matrix<double>, Matrix<float>> readBatch() {

@@ -20,7 +20,7 @@ int main() {
 
   NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "softmax", "cce");
 
-  Train t(&nn, &ds, 10, 350, 0.5);
+  Train t(&nn, &ds, 10, 3500, 0.5);
   t.train(0.1);
 
   cout << "losses: " << endl;
