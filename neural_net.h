@@ -68,7 +68,7 @@ class NeuralNetMLP {
         activation_function_prime = &NeuralNetMLP::sigmoid_prime;
       }
       
-      if(loss_type == "categorical_cross_entropy") {
+      if((loss_type == "categorical_cross_entropy") || (loss_type == "cce")) {
         loss_function = &NeuralNetMLP::categorical_cross_entropy_loss;
         loss_function_prime = &NeuralNetMLP::categorical_cross_entropy_loss_prime;
       } else {

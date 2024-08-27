@@ -19,12 +19,12 @@ Matrix<double> NeuralNetMLP::int_to_onehot(Matrix<float> y) {
       }
       cout << endl;
     }
-    cout << "entered i: " << i << endl;
+    /* cout << "entered i: " << i << endl;
     cout << "y[i] size: " << y[i].size() << endl;
     cout << "y[i][0]: " << y[i][0] << endl;
-    cout << "y_onehot shape: " << y_onehot.shape() << endl;
+    cout << "y_onehot shape: " << y_onehot.shape() << endl; */
     y_onehot[i][y[i][0]] = 1;
-    cout << "exited i: " << i << endl;
+    // cout << "exited i: " << i << endl;
   }
 
   return y_onehot;

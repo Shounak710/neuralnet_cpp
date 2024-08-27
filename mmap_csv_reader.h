@@ -58,9 +58,9 @@ class MMapCSVReader {
       return "";
     }
 
-    std::vector<std::vector<double>> getlines_from_mmap(std::vector<int> training_indices) {
+    std::vector<std::vector<double>> getlines_from_mmap(std::vector<int> training_line_numbers) {
       std::vector<std::vector<double>> res;
-      std::cout << "training indices size: " << training_indices.size() << std::endl;
+      // std::cout << "training line_numbers size: " << training_line_numbers.size() << std::endl;
 
       int current_line = 1;
       int curr_finding_index = 0;
@@ -69,14 +69,14 @@ class MMapCSVReader {
       const char *line_end = nullptr;
 
       for (size_t i = 0; i < filesize; ++i) {
-        if(curr_finding_index == training_indices.size()) return res;
+        if(curr_finding_index == training_line_numbers.size()) return res;
 
         if (data[i] == '\n' || i == filesize - 1) {
           line_end = &data[i];
 
-          if (current_line == training_indices[curr_finding_index] + 1) {
+          if (current_line == training_line_numbers[curr_finding_index]) {
             res.push_back(split(std::string(line_start, line_end - line_start), delimiter));
-            std::cout << "Curr index: " << curr_finding_index << std::endl;
+            std::cout << "Curr line number: " << training_line_numbers[curr_finding_index] << std::endl;
             curr_finding_index++;
           }
 

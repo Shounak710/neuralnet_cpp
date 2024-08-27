@@ -46,27 +46,20 @@ struct Train {
     // }
 
     void load_training_data() {
-      vector<vector<double>> td = dataset_reader.getlines_from_mmap(dataset->train_indices);
+      vector<vector<double>> td = dataset_reader.getlines_from_mmap(dataset->train_line_numbers);
 
-      for(int i=0; i < dataset->train_indices.size(); i++) {
-        cout << "i: " << i << endl;
-        training_data[dataset->train_indices[i] + 1] = td[i];
+      for(int i=0; i < dataset->train_line_numbers.size(); i++) {
+        training_data[dataset->train_line_numbers[i]] = td[i];
       }
     }
 
     std::tuple<Matrix<double>, Matrix<float>> readBatch() {
       Matrix<double> batch_dataset;
       Matrix<float> batch_label;
-      // cout << "last read index: " << last_read_index << endl;
 
       for(int i=0; i < batch_size; i++) {
-        int line_number = dataset->train_indices[last_read_index+1] + 1;
-        cout << "i: " << i << endl;
-        cout << "reading line number: " << line_number << endl;
+        int line_number = dataset->train_line_numbers[last_read_index+1];
         batch_dataset.data.push_back(training_data[line_number]);
-
-        cout << "line number: " << line_number << endl;
-        cout << "training data: " << training_data[line_number].size() << endl;
 
         if(training_data[line_number].size() == 0) {
           throw std::runtime_error("empty data");
@@ -76,15 +69,11 @@ struct Train {
 
         batch_label.data.push_back(y);
         last_read_index += 1;
-
-        cout << "read line" << endl;
       }
 
       batch_dataset.update_shape();
       batch_label.update_shape();
 
-      cout << "batch data set shape: " << batch_dataset.data[0].size() << endl;
-      cout << "here" << endl;
       return std::make_tuple(batch_dataset, batch_label);
     }
 
@@ -106,43 +95,25 @@ struct Train {
       Matrix<double> y_onehot;
 
       for(int i=0; i < num_epochs; i++) {
-        dataset->shuffle_indices(dataset->train_indices);
+        dataset->shuffle_vec(dataset->train_line_numbers);
 
         std::cout << "Training epoch " << i << " #####################" << std::endl;
 
-        // cout << "last read index: " << last_read_index << " dtis: " << dataset->train_indices.size() << endl;
-        cout << "training set size: " << dataset->train_indices.size() << endl;
-        
-        // std::tuple<Matrix<float>, Matrix<float>> data = readBatch();
-        // y_onehot = dataset->int_to_onehot(std::get<1>(data)[0]);
-        // cout << "batch size: " << batch_size << " y_onehot shape: " << y_onehot.shape() << endl;
-
-        while(last_read_index < (int) dataset->train_indices.size()-1) {
+        while(last_read_index < (int) dataset->train_line_numbers.size()-1) {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
-          // last_read_index += batch_size;
-
-          cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
-          y_onehot = model->int_to_onehot(std::get<1>(data));
-          // y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
-          cout << "y onehot shape: " << y_onehot.shape() << endl;
-
-          // std::cout << std::get<0>(data).shape() << std::endl;
-          model->forward(std::get<0>(data));
-          cout << "forward done" << endl;
           
-          cout << "starting backpropagation" << endl;
+          y_onehot = model->int_to_onehot(std::get<1>(data));
+          
+          model->forward(std::get<0>(data));
+          
           model->backward(std::get<0>(data), y_onehot, learning_rate);
-          cout << "backward done" << endl;
         }
 
         last_read_index = -1;
 
-        // cout << "activation size: " << model->output_activations.shape() << endl;
         double loss = model->loss_function(model->output_activations, y_onehot);
-        // std::cout << "Loss after epoch " << i+1 << ": " << std::to_string(loss) << std::endl;
-        losses.push_back(loss);
 
-        dataset->shuffle_indices(dataset->train_indices);
+        losses.push_back(loss);
       }
     }
 };

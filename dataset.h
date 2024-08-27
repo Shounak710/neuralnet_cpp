@@ -28,7 +28,7 @@ struct Dataset {
   public:
     char delimiter;
     int num_classes, num_rows, num_features;
-    std::vector<int> train_indices, test_indices;
+    std::vector<int> train_line_numbers, test_line_numbers;
     std::string dataset_filepath, labels_filepath;
     Matrix<float> y;
 
@@ -43,7 +43,8 @@ struct Dataset {
       num_features = dataset_reader.read_line_number(1).size();
     }
 
-    static void shuffle_indices(vector<int>& indices) {
+    template<typename T=int>
+    static void shuffle_vec(vector<T>& indices) {
       std::random_device rd;
       std::mt19937 g(rd());
 
@@ -51,16 +52,16 @@ struct Dataset {
     }
 
     void train_test_split_indices(float test_size=0.2) {
-      std::vector<int> indices;
-      for(int i=0; i < num_rows; i++) { indices.push_back(i); }
+      std::vector<int> line_numbers;
+      for(int i=1; i <= num_rows; i++) { line_numbers.push_back(i); }
 
-      shuffle_indices(indices);
+      shuffle_vec(line_numbers);
 
       size_t split_point = num_rows * (1 - test_size);
 
-      train_indices = std::vector<int>(indices.begin(), indices.begin() + split_point);
-      test_indices = std::vector<int>(indices.begin() + split_point, indices.end());
+      train_line_numbers = std::vector<int>(line_numbers.begin(), line_numbers.begin() + split_point);
+      test_line_numbers = std::vector<int>(line_numbers.begin() + split_point, line_numbers.end());
 
-      std::sort(train_indices.begin(), train_indices.end());
+      std::sort(train_line_numbers.begin(), train_line_numbers.end());
     }
 };
