@@ -2,6 +2,7 @@
 
 #include "neural_net.h"
 #include "dataset.h"
+#include "mmap_csv_reader.h"
 #include "csv_reader.h"
 
 #include <iostream>
@@ -9,13 +10,17 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 struct Train {
   private:
     Dataset* dataset;
-    CSVReader dataset_reader, label_reader;
+    CSVReader label_reader;
+    MMapCSVReader dataset_reader;
+    unordered_map<int, vector<double>> training_data;
 
     int last_read_index = -1;
+    float train_test_split_size;
 
     // void get_train_test_indices() {
     //   std::tuple<std::vector<int>, std::vector<int>> train_test_indices = dataset->train_test_split_indices(train_test_split_size);
@@ -40,20 +45,39 @@ struct Train {
     //   return y_onehot;
     // }
 
+    void load_training_data() {
+      vector<vector<double>> td = dataset_reader.getlines_from_mmap(dataset->train_indices);
+
+      for(int i=0; i < dataset->train_indices.size(); i++) {
+        cout << "i: " << i << endl;
+        training_data[dataset->train_indices[i] + 1] = td[i];
+      }
+    }
+
     std::tuple<Matrix<double>, Matrix<float>> readBatch() {
       Matrix<double> batch_dataset;
       Matrix<float> batch_label;
       // cout << "last read index: " << last_read_index << endl;
 
       for(int i=0; i < batch_size; i++) {
-        batch_dataset.data.push_back(dataset_reader.read_next_line());
+        int line_number = dataset->train_indices[last_read_index+1] + 1;
+        cout << "i: " << i << endl;
+        cout << "reading line number: " << line_number << endl;
+        batch_dataset.data.push_back(training_data[line_number]);
 
-        vector<double> y = label_reader.read_next_line();
-        vector<float> y_f(y.size());
+        cout << "line number: " << line_number << endl;
+        cout << "training data: " << training_data[line_number].size() << endl;
 
-        std::transform(y.begin(), y.end(), y_f.begin(), [](double val) { return static_cast<float>(val); });
+        if(training_data[line_number].size() == 0) {
+          throw std::runtime_error("empty data");
+        }
 
-        batch_label.data.push_back(y_f);
+        vector<float> y = dataset->y[line_number-1];
+
+        batch_label.data.push_back(y);
+        last_read_index += 1;
+
+        cout << "read line" << endl;
       }
 
       batch_dataset.update_shape();
@@ -71,17 +95,18 @@ struct Train {
     std::vector<double> losses;
 
     Train(NeuralNetMLP* model, Dataset* dataset, int num_epochs, int batch_size=500, float train_test_split_size = 0.2): model(model),
-    dataset(dataset), num_epochs(num_epochs), batch_size(batch_size), dataset_reader(dataset->dataset_filepath), label_reader(dataset->labels_filepath) {
+    dataset(dataset), num_epochs(num_epochs), batch_size(batch_size), dataset_reader(dataset->dataset_filepath), label_reader(dataset->labels_filepath),
+    train_test_split_size(train_test_split_size) {
 
       dataset->train_test_split_indices(train_test_split_size);
+      load_training_data();
     }
 
     void train(float learning_rate = 0.01) {
       Matrix<double> y_onehot;
 
       for(int i=0; i < num_epochs; i++) {
-        dataset_reader.move_to_beginning_of_file();
-        label_reader.move_to_beginning_of_file();
+        dataset->shuffle_indices(dataset->train_indices);
 
         std::cout << "Training epoch " << i << " #####################" << std::endl;
 
@@ -94,7 +119,7 @@ struct Train {
 
         while(last_read_index < (int) dataset->train_indices.size()-1) {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
-          last_read_index += batch_size;
+          // last_read_index += batch_size;
 
           cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
           y_onehot = model->int_to_onehot(std::get<1>(data));

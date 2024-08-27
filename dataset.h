@@ -1,6 +1,7 @@
 #pragma once
 
 #include "csv_reader.h"
+#include "mmap_csv_reader.h"
 #include "matrix.h"
 
 #include <iostream>
@@ -12,10 +13,10 @@
 
 struct Dataset {
   private:
-    int countUniqueValues(const Matrix<double>& labels) {
+    int countUniqueValues(const Matrix<float>& labels) {
       std::set<int> unique_values;
 
-      for (vector<double> row : labels.data) {
+      for (vector<float> row : labels.data) {
         for(double value : row) {
           unique_values.insert(value);
         }
@@ -29,11 +30,13 @@ struct Dataset {
     int num_classes, num_rows, num_features;
     std::vector<int> train_indices, test_indices;
     std::string dataset_filepath, labels_filepath;
+    Matrix<float> y;
 
     Dataset(const std::string& dataset_filepath, const std::string& labels_filepath, const char& delimiter=','): dataset_filepath(dataset_filepath),
     labels_filepath(labels_filepath), delimiter(delimiter) {
-      CSVReader dataset_reader(dataset_filepath);
-      Matrix<double> y = CSVReader(labels_filepath, delimiter).readCSV();
+      // CSVReader dataset_reader(dataset_filepath);
+      MMapCSVReader dataset_reader(dataset_filepath);
+      y = CSVReader(labels_filepath, delimiter).readCSV<float>();
       
       num_classes = countUniqueValues(y);
       num_rows = y.data.size();
@@ -57,5 +60,7 @@ struct Dataset {
 
       train_indices = std::vector<int>(indices.begin(), indices.begin() + split_point);
       test_indices = std::vector<int>(indices.begin() + split_point, indices.end());
+
+      std::sort(train_indices.begin(), train_indices.end());
     }
 };

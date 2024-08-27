@@ -1,6 +1,8 @@
 #pragma once
 
 #include "matrix.h"
+#include "helper_functions.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,17 +14,6 @@ class CSVReader {
     char delimiter;
     std::string filename;
     std::ifstream file;
-
-    inline std::vector<double> split(const std::string& str) {
-        std::vector<double> tokens;
-        std::string token;
-        std::istringstream tokenStream(str);
-
-        while (getline(tokenStream, token, delimiter)) {
-            tokens.push_back(std::stof(token));
-        }
-        return tokens;
-    }
 
     void go_to_line(unsigned int num){
       move_to_beginning_of_file();
@@ -51,25 +42,26 @@ class CSVReader {
       go_to_line(line_number);
       getline(file, line);
 
-      return split(line);    
+      return split(line, delimiter);
     }
 
     std::vector<double> read_next_line() {
       std::string line;
 
       getline(file, line);
-      return split(line);
+      return split(line, delimiter);
     }
 
-    Matrix<double> readCSV() {
-      std::vector<std::vector<double>> data;
+    template<typename T = double>
+    Matrix<T> readCSV() {
+      std::vector<std::vector<T>> data;
       std::string line;
 
       while (getline(file, line)) {
-        data.push_back(split(line));
+        data.push_back(split<T>(line, delimiter));
       }
 
-      return Matrix<double>(data);
+      return Matrix<T>(data);
     }
 
     inline void move_to_beginning_of_file() {
@@ -96,7 +88,7 @@ class CSVReader {
       move_to_beginning_of_file();
 
       getline(file, line);
-      std::vector<double> row = split(line);
+      std::vector<double> row = split(line, delimiter);
 
       return row.size();
     }
