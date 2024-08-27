@@ -171,11 +171,30 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
 
 Matrix<double> NeuralNetMLP::sigmoid(Matrix<double> z) {
   Matrix<double> res(z.row_count, z.col_count);
+  double max_el;
 
   for(int i=0; i < z.row_count; i++) {
-    transform(z[i].begin(), z[i].end(), res[i].begin(), [](double x) {
-      return (1.0 / (1 + exp(-x)));
-    });
+    max_el = *max_element(z[i].begin(), z[i].end());
+
+    for(int j=0; j < z.col_count; j++) {
+      res[i][j] = (exp(z[i][j]) / (1 + exp(z[i][j])));
+
+      if(isnan(res[i][j]) || isinf(res[i][j])) {
+        res[i][j] = (exp(z[i][j] - max_el)) / (exp(-max_el) + exp(z[i][j] - max_el));
+      }
+
+      if(isnan(res[i][j]) || isinf(res[i][j])) {
+        res[i][j] = 1;
+
+        // cout << "nan encountered at res" << endl;
+        // cout << "z: " << z[i][j] << endl;
+        // cout << "max el: " << max_el << endl;
+        // cout << "z - max_el: " << z[i][j] - max_el << endl;
+        // cout << "res: " << res << endl;
+
+        // throw std::runtime_error("sigmoid res nan");
+      }
+    }
   }
 
   return res;
@@ -193,18 +212,50 @@ Matrix<double> NeuralNetMLP::sigmoid_prime(Matrix<double> z) {
 
 Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
   Matrix<double> res(z.row_count, z.col_count);
-  double sum;
+  vector<double> sums(z.row_count, 0.0);
+  double max_el;
 
   for(int i=0; i < z.row_count; i++) {
-    transform(z[i].begin(), z[i].end(), res[i].begin(), [](double x) {
-      return exp(x);
-    });
+    max_el = *max_element(z[i].begin(), z[i].end());
 
-    sum = accumulate(res[i].begin(), res[i].end(), 0.0);
+    for(int j=0; j < z.col_count; j++) {
+      res[i][j] = exp(z[i][j]-max_el);
+      sums[i] += res[i][j];
 
-    transform(res[i].begin(), res[i].end(), res[i].begin(), [&sum](double x) {
-      return x / sum;
-    });
+      if(isnan(res[i][j]) || isinf(res[i][j])) {
+        cout << "nan encountered at softmax res" << endl;
+        cout << "z: " << z[i][j];
+        cout << "max el: " << max_el;
+        cout << "res: " << res[i][j];
+
+        throw std::runtime_error("res nan");
+      }
+    }
+    // transform(z[i].begin(), z[i].end(), res[i].begin(), [](double x) {
+    //   return exp(x);
+    // });
+
+    // sum = accumulate(res[i].begin(), res[i].end(), 0.0);
+
+    // transform(res[i].begin(), res[i].end(), res[i].begin(), [&sum](double x) {
+    //   return x / sum;
+    // });
+  }
+
+  for(int i=0; i < res.row_count; i++) {
+    for(int j=0; j < res.col_count; j++) {
+      res[i][j] = res[i][j] / sums[i];
+
+      if(isnan(res[i][j]) || isinf(res[i][j])) {
+        cout << "nan encountered at res / sum" << endl;
+        cout << "z: " << z[i][j] << endl;
+        cout << "exp(z): " << (long double) exp(z[i][j]) << endl;
+        cout << "res: " << res[i][j];
+        cout << "sum: " << sums[i];
+
+        throw std::runtime_error("res nan");
+      }
+    }
   }
 
   return res;
@@ -226,26 +277,38 @@ Matrix<double> NeuralNetMLP::softmax_prime(Matrix<double> z) {
   return sigm  * (diff.Tr());
 }
 
-float NeuralNetMLP::categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot) {
+double NeuralNetMLP::categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot) {
+  const double epsilon = 1e-12;
   double sum = 0.0;
 
   for(int i=0; i < y_onehot.row_count; i++) {
     for(int j=0; j < y_onehot.col_count; j++) {
-      sum += y_onehot[i][j] * log(output_activations[i][j]);
+      cout << "y onehot ij: " << y_onehot[i][j] << endl;
+      cout << "output act: " << output_activations[i][j] << endl;
+      cout << "log oa: " << log(output_activations[i][j]) << endl;
+      cout << "sum add: " << y_onehot[i][j] * log(max(epsilon, output_activations[i][j])) << endl;
+      sum += y_onehot[i][j] * log(max(epsilon, output_activations[i][j]));
     }
   }
 
-  return -sum / (y_onehot.row_count);
+  if(contains_nan(y_onehot) || contains_nan(output_activations)) {
+    cout << "oa: " << output_activations << endl;
+    cout << "yonehot: " << y_onehot;
+
+    throw std::runtime_error("fp Nan encountered at cce loss");
+  }
+
+  return -sum / (y_onehot.row_count * y_onehot.col_count);
 }
 
 Matrix<double> NeuralNetMLP::categorical_cross_entropy_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot) {
   return (output_activations - y_onehot);
 }
 
-float NeuralNetMLP::mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot) {
+double NeuralNetMLP::mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot) {
   Matrix<double> loss = (y_onehot - output_activations);
   
-  double sum = 0.0;
+  long double sum = 0.0;
 
   // cout << "mse loss" << endl;
   // cout << "loss matrix: " << output_activations << endl;

@@ -24,10 +24,10 @@ int main() {
 
   cout << "num classes: " << ds.num_classes << " num_features: " << ds.num_features << endl;
 
-  NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts);
+  NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "sigmoid", "mse");
 
-  Train t(&nn, &ds, 10, 3500, 0.5);
-  t.train();
+  Train t(&nn, &ds, 5, 35, 0.5);
+  t.train(0.001);
 
   cout << "losses: " << endl;
 

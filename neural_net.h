@@ -41,8 +41,8 @@ class NeuralNetMLP {
     static Matrix<double> sigmoid(Matrix<double> z);
     static Matrix<double> softmax(Matrix<double> z);
 
-    static float mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
-    static float categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
+    static double mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
+    static double categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
 
     Matrix<double> int_to_onehot(Matrix<float> y);
     Matrix<double> biases_output, weights_output, output_weighted_inputs, output_activations;
@@ -54,7 +54,7 @@ class NeuralNetMLP {
     Matrix<double> (*activation_function)(Matrix<double> z);
     Matrix<double> (*activation_function_prime)(Matrix<double> z);
 
-    float (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
+    double (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
     Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);
 
     NeuralNetMLP(int num_classes, int num_features, std::vector<int> num_hidden, std::string activation_type="sigmoid", std::string loss_type="mse"): num_classes(num_classes),

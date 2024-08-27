@@ -46,8 +46,6 @@ struct Train {
       // cout << "last read index: " << last_read_index << endl;
 
       for(int i=0; i < batch_size; i++) {
-        if(last_read_index == dataset->train_indices.size()-1) break;
-
         batch_dataset.data.push_back(dataset_reader.read_next_line());
 
         vector<double> y = label_reader.read_next_line();
@@ -70,7 +68,7 @@ struct Train {
     int num_epochs, batch_size;
     NeuralNetMLP* model;
     std::vector<int> training_data_line_numbers, test_data_line_numbers;
-    std::vector<float> losses;
+    std::vector<double> losses;
 
     Train(NeuralNetMLP* model, Dataset* dataset, int num_epochs, int batch_size=500, float train_test_split_size = 0.2): model(model),
     dataset(dataset), num_epochs(num_epochs), batch_size(batch_size), dataset_reader(dataset->dataset_filepath), label_reader(dataset->labels_filepath) {
@@ -97,7 +95,7 @@ struct Train {
         while(last_read_index < (int) dataset->train_indices.size()-1) {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
           last_read_index += batch_size;
-          
+
           cout << "X shape: " << std::get<0>(data).shape() << "y shape: " << std::get<1>(data).shape() << endl;
           y_onehot = model->int_to_onehot(std::get<1>(data));
           // y_onehot = int_to_onehot(std::get<1>(data), dataset->num_classes);
@@ -115,7 +113,7 @@ struct Train {
         last_read_index = -1;
 
         // cout << "activation size: " << model->output_activations.shape() << endl;
-        float loss = model->loss_function(model->output_activations, y_onehot);
+        double loss = model->loss_function(model->output_activations, y_onehot);
         // std::cout << "Loss after epoch " << i+1 << ": " << std::to_string(loss) << std::endl;
         losses.push_back(loss);
 
