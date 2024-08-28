@@ -51,6 +51,19 @@ struct Matrix {
 
     Matrix<T> Tr() const { return transpose(); }
 
+    // Calculate mean value for each column in matrix
+    Matrix<T> col_mean() const {
+        Matrix<T> res(1, col_count);
+
+        for(int i=0; i < row_count; i++) {
+            for(int j=0; j < col_count; j++) {
+            res[0][j] += data[i][j] / row_count;
+            }
+        }
+
+        return res;
+    }
+
     Matrix<T> operator+(const Matrix<T>& other) const {
         if ((other.row_count != row_count) || (other.col_count != col_count)) {
             throw std::invalid_argument(

@@ -22,29 +22,6 @@ struct Train {
     int last_read_index = -1;
     float train_test_split_size;
 
-    // void get_train_test_indices() {
-    //   std::tuple<std::vector<int>, std::vector<int>> train_test_indices = dataset->train_test_split_indices(train_test_split_size);
-    //   training_data_line_numbers = std::get<0>(train_test_indices);
-    //   test_data_line_numbers = std::get<1>(train_test_indices);
-    // }
-
-    // Matrix<double> int_to_onehot(Matrix<float> y, int num_classes) {
-    //   cout << "entered y onehot" << endl;
-    //   cout << "num classes: " << num_classes << endl;
-    //   Matrix<double> y_onehot(y.row_count, num_classes);
-
-    //   for(int i=0; i < y.row_count; i++) {
-    //     if((i > y_onehot.row_count-1)) cout << "Seg fault culprit row: " << i << " " << y_onehot.row_count << endl;
-    //     if(((int) y[i][0] > y_onehot.col_count-1)) cout << "Seg fault culprit col: " << (int) y[i][0] << " " << y_onehot.col_count << endl;
-    //     cout << "i: " << i << " y[i][0]: " << (int) y[i][0] << " row count: " << y_onehot.row_count << " col count: " << y_onehot.col_count << endl;
-    //     cout << "el: " << y_onehot[i][(int) y[i][0]] << endl;
-    //     y_onehot[i][(int) y[i][0]] = 1;
-    //   }
-
-    //   cout << "exited y onehot" << endl;
-    //   return y_onehot;
-    // }
-
     void load_training_data() {
       cout << "loading training data" << endl;
       vector<vector<double>> td = dataset_reader.getlines_from_mmap(dataset->train_line_numbers);
@@ -60,6 +37,8 @@ struct Train {
       Matrix<float> batch_label;
 
       for(int i=0; i < batch_size; i++) {
+        if(last_read_index == dataset->train_line_numbers.size()-1) break;
+
         int line_number = dataset->train_line_numbers[last_read_index+1];
         batch_dataset.data.push_back(training_data[line_number]);
 
@@ -90,6 +69,7 @@ struct Train {
     train_test_split_size(train_test_split_size) {
 
       dataset->train_test_split_indices(train_test_split_size);
+      cout << "training data size: " << dataset->train_line_numbers.size() << endl;
       load_training_data();
     }
 
@@ -106,8 +86,7 @@ struct Train {
           
           y_onehot = model->int_to_onehot(std::get<1>(data));
           
-          model->forward(std::get<0>(data));
-          
+          model->forward(std::get<0>(data));          
           model->backward(std::get<0>(data), y_onehot, learning_rate);
         }
 

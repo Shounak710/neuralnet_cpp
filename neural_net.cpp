@@ -109,8 +109,43 @@ void NeuralNetMLP::forward(Matrix<double> x) {
   }
 }
 
+Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot) {
+  Matrix<double> delta(output_activations.row_count, output_activations.col_count);
+  cout << "loss type: " << loss_type << endl;
+
+  if((loss_type == "cce") || (loss_type == "categorical_cross_entropy")) {
+    delta = output_activations - y_onehot;
+  } else if(loss_type == "mse") {
+    // for MSE loss
+    if(activation_type == "sigmoid") {
+      Matrix<double> sigm_deriv = sigmoid_prime(output_weighted_inputs);
+      delta = (output_activations - y_onehot).el_mult(sigm_deriv);
+    } else if(activation_type == "softmax") {
+      for(int i=0; i < output_activations.row_count; i++) {
+        double sum = 0.0;
+
+        for(int j=0; j < output_activations.col_count; j++) {
+          sum += (output_activations[i][j] - y_onehot[i][j]) * output_activations[i][j];
+          
+        }
+
+        for(int k=0; k < output_activations.col_count; k++) {
+          delta[i][k] = output_activations[i][k] * (output_activations[i][k] - y_onehot[i][k] - sum);
+        }
+      }
+    }
+  } else {
+    throw std::runtime_error("Unsupported loss function type " + loss_type);
+  }
+
+  // delta = delta.col_mean();
+
+  return delta;
+}
+
 void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
-  Matrix<double> delta =  (activation_function_prime(output_weighted_inputs)) * (loss_function_prime(output_activations, y_onehot));
+  // Matrix<double> delta =  (activation_function_prime(output_weighted_inputs)) * (loss_function_prime(output_activations, y_onehot));
+  Matrix<double> delta = calculate_delta(y_onehot);
   if(contains_nan(delta)) {
     cout << "delta 1: " << delta << endl;
     cout << "output wt inp " << output_weighted_inputs << endl;
@@ -207,7 +242,7 @@ Matrix<double> NeuralNetMLP::sigmoid_prime(Matrix<double> z) {
   // cout << "sigm size: " << sigm.shape() << endl;
   // cout << "diff size: " << diff.shape() << endl;
 
-  return sigm * (diff.Tr());
+  return sigm.el_mult(diff);
 }
 
 Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
@@ -231,20 +266,11 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
         throw std::runtime_error("res nan");
       }
     }
-    // transform(z[i].begin(), z[i].end(), res[i].begin(), [](double x) {
-    //   return exp(x);
-    // });
-
-    // sum = accumulate(res[i].begin(), res[i].end(), 0.0);
-
-    // transform(res[i].begin(), res[i].end(), res[i].begin(), [&sum](double x) {
-    //   return x / sum;
-    // });
   }
 
   for(int i=0; i < res.row_count; i++) {
     for(int j=0; j < res.col_count; j++) {
-      res[i][j] = res[i][j] / sums[i];
+      res[i][j] /= sums[i];
 
       if(isnan(res[i][j]) || isinf(res[i][j])) {
         cout << "nan encountered at res / sum" << endl;
@@ -262,6 +288,7 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
 }
 
 Matrix<double> NeuralNetMLP::softmax_prime(Matrix<double> z) {
+  cout << "softmax prime z dim: " << z.shape() << endl;
   Matrix<double> softm = softmax(z);
   Matrix<double> jacobian = Matrix<double>(z.row_count, z.row_count);
 

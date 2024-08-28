@@ -32,12 +32,16 @@ class NeuralNetMLP {
       return weights;
     }
 
+    Matrix<double> calculate_delta(Matrix<double> y_onehot);
+
     static Matrix<double> sigmoid_prime(Matrix<double> z);
     static Matrix<double> softmax_prime(Matrix<double> z);
     static Matrix<double> mse_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
     static Matrix<double> categorical_cross_entropy_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
 
   public:
+    std::string loss_type, activation_type;
+
     static Matrix<double> sigmoid(Matrix<double> z);
     static Matrix<double> softmax(Matrix<double> z);
 
@@ -58,7 +62,7 @@ class NeuralNetMLP {
     Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);
 
     NeuralNetMLP(int num_classes, int num_features, std::vector<int> num_hidden, std::string activation_type="sigmoid", std::string loss_type="mse"): num_classes(num_classes),
-    num_features(num_features), num_hidden(num_hidden), dist(mean, std), gen(rd()) {
+    num_features(num_features), num_hidden(num_hidden), activation_type(activation_type), loss_type(loss_type), dist(mean, std), gen(rd()) {
 
       if(activation_type == "softmax") {
         activation_function = &NeuralNetMLP::softmax;
