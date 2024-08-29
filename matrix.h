@@ -220,7 +220,6 @@ struct Matrix {
 
         Matrix<Matrix<T>> res(row_count, 1);
 
-        std::cout << "starting row mult" << std::endl;
         for(int i=0; i < row_count; i++) {
             Matrix<T> mat_1 = Matrix<T>({data[i]});
             Matrix<T> mat_2 = Matrix<T>({other.data[i]});
@@ -230,7 +229,6 @@ struct Matrix {
 
             res[i] = {mat_1 * mat_2};
         }
-        std::cout << "completed row mult" << std::endl;
 
         return res;
     }

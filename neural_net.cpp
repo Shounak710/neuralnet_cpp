@@ -115,7 +115,7 @@ Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot, size_t row
 
   Matrix<double> output_activation = Matrix<double>({output_activations[row_index]});
   Matrix<double> delta(1, output_activation.col_count);
-  cout << "loss type: " << loss_type << endl;
+  // cout << "loss type: " << loss_type << endl;
 
   if((loss_type == "cce") || (loss_type == "categorical_cross_entropy")) {
     delta = output_activation - y;
@@ -149,7 +149,7 @@ Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot, size_t row
 
 Matrix<double> NeuralNetMLP::delt_calc(Matrix<double> y_onehot) {
   Matrix<double> delta(output_activations.row_count, output_activations.col_count);
-  cout << "loss type: " << loss_type << endl;
+  // cout << "loss type: " << loss_type << endl;
 
   if((loss_type == "cce") || (loss_type == "categorical_cross_entropy")) {
     delta = output_activations - y_onehot;
@@ -184,10 +184,10 @@ Matrix<double> NeuralNetMLP::delt_calc(Matrix<double> y_onehot) {
 void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
   Matrix<double> delta = delt_calc(y_onehot);
   
-  cout << "delta shape: " << delta.shape() << endl;
+  /* cout << "delta shape: " << delta.shape() << endl;
   cout << "bo shape: " << biases_output.shape() << endl;
   cout << "wo shape: " << weights_output.shape() << endl;
-  cout << "hab shape: " << hidden_activations.back().shape() << endl;
+  cout << "hab shape: " << hidden_activations.back().shape() << endl; */
 
   biases_output = biases_output - delta.scalar_mult(learning_rate);
 
@@ -202,9 +202,8 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
   //   dha = dha + delta.Tr() * Matrix<double>({hidden_activations.back()[i]});
   // }
 
-  weights_output = weights_output - dha.scalar_mult(learning_rate);
-  cout << "w calculated" << endl;
-
+  weights_output = weights_output - dha.scalar_mult(learning_rate * delta.row_count);
+  
   for(int i=weights_hidden.size() - 2; i >= 0; i--) {
     Matrix<double> weight;
     if(i == weights_hidden.size() - 2) {
@@ -213,28 +212,31 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
       weight = weights_hidden[i + 2];
     }
 
-    cout << "start i: " << i << " ds" << endl;
+    /* cout << "start i: " << i << " ds" << endl;
     cout << "acfp shape: " << activation_function_prime(hidden_weighted_inputs[i+1]).Tr().shape() << endl;
     cout << "delta shape: " << delta.shape() << endl;
     cout << "wt shape: " << weight.shape() << endl;
-    cout << "hwi shape: " << hidden_weighted_inputs[i+1].shape() << endl;
-
+    cout << "hwi shape: " << hidden_weighted_inputs[i+1].shape() << endl; */
     Matrix<double> dw = delta * weight;
+    /* cout << "dw shape: " << dw.shape() << endl;
+    cout << "afp shape: " << activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][0]})).shape() << endl; */
+    // throw std::runtime_error("Check dimensions");
 
-    cout << "dw shape: " << dw.shape() << endl;
-
+    // delta = (Matrix<double>({activation_function_prime(hidden_weighted_inputs[i+1])[j]}).Tr() * delta * weight).col_mean();
     delta = Matrix<double>(hidden_weighted_inputs[i+1].row_count, weight.col_count);
     for(int k=0; k < delta.row_count; k++) {
-      delta[k] = ((activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][k]})) * dw[k]).col_mean())[0];
+      delta = delta + dw * (activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][k]})));
     }
+    delta = delta / (delta.row_count);
     
-    cout << "delta calculated" << endl;
+    /* cout << "delta calculated" << endl;
 
     cout << "wh shape: " << weights_hidden[i+1].shape() << endl;
+    cout << "drmhai shape: " << delta.row_mult(hidden_activations[i])[0][0].shape() << endl;
     cout << "ha shape: " << hidden_activations[i].shape() << endl;
-    cout << "bh shape: " << biases_hidden[i+1].shape() << endl;
+    cout << "bh shape: " << biases_hidden[i+1].shape() << endl; */
 
-    weights_hidden[i+1] = weights_hidden[i+1] - (delta.Tr() * hidden_activations[i]).scalar_mult(learning_rate);
+    weights_hidden[i+1] = weights_hidden[i+1] - ((delta.row_mult(hidden_activations[i])).col_mean()[0][0]).scalar_mult(learning_rate * delta.row_count);
     biases_hidden[i+1] = biases_hidden[i+1] - delta.scalar_mult(learning_rate);
   }
 }
