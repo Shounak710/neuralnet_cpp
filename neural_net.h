@@ -32,7 +32,7 @@ class NeuralNetMLP {
       return weights;
     }
 
-    Matrix<double> calculate_delta(Matrix<double> y_onehot);
+    Matrix<double> calculate_delta(Matrix<double> y_onehot, size_t row_index);
 
     static Matrix<double> sigmoid_prime(Matrix<double> z);
     static Matrix<double> softmax_prime(Matrix<double> z);

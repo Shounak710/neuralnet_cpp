@@ -68,8 +68,8 @@ struct Matrix {
         if ((other.row_count != row_count) || (other.col_count != col_count)) {
             throw std::invalid_argument(
                 "Matrix dimensions are not compatible for addition. \
-              Matrix 1: (" + std::to_string(row_count) + "," + std::to_string(col_count) + "). \
-              Matrix 2: (" + std::to_string(other.row_count) + "," + std::to_string(other.col_count) + ")"
+              Matrix 1: " + this->shape() + "). \
+              Matrix 2: " + other.shape());
             );
         }
 
@@ -86,8 +86,8 @@ struct Matrix {
         if ((other.row_count != row_count) || (other.col_count != col_count)) {
             throw std::invalid_argument(
               "Matrix dimensions are not compatible for subtraction. \
-              Matrix 1: (" + std::to_string(row_count) + "," + std::to_string(col_count) + "). \
-              Matrix 2: (" + std::to_string(other.row_count) + "," + std::to_string(other.col_count) + ")");
+              Matrix 1: " + this->shape() + "). \
+              Matrix 2: " + other.shape());
         }
 
         Matrix<T> res(row_count, col_count);
@@ -103,8 +103,29 @@ struct Matrix {
         if (col_count != other.row_count) {
             throw std::invalid_argument(
               "Matrix dimensions are not compatible for multiplication. \
-              Matrix 1: (" + std::to_string(row_count) + "," + std::to_string(col_count) + "). \
-              Matrix 2: (" + std::to_string(other.row_count) + "," + std::to_string(other.col_count) + ")");
+              Matrix 1: " + this->shape() + "). \
+              Matrix 2: " + other.shape());
+        }
+
+        Matrix<T> res(row_count, other.col_count);
+        for (size_t i = 0; i < row_count; i++) {
+            for (size_t j = 0; j < other.col_count; j++) {
+                T el = 0;
+                for (size_t k = 0; k < col_count; k++) {
+                    el += data[i][k] * other[k][j];
+                }
+                res[i][j] = el;
+            }
+        }
+        return res;
+    }
+
+    Matrix<T> operator*(const vector<T>& other) const {
+        if (col_count != other.size()) {
+            throw std::invalid_argument(
+              "Matrix dimensions are not compatible for matrix-vector multiplication. \
+              Matrix 1:  " + this->shape() + ". \
+              Vector size: " + other.size());
         }
 
         Matrix<T> res(row_count, other.col_count);
@@ -124,8 +145,8 @@ struct Matrix {
         if ((row_count != other.row_count) || (col_count != other.col_count)) {
             throw std::invalid_argument(
               "Matrix dimensions are not compatible for element-wise multiplication. \
-              Matrix 1: (" + std::to_string(row_count) + "," + std::to_string(col_count) + "). \
-              Matrix 2: (" + std::to_string(other.row_count) + "," + std::to_string(other.col_count) + ")");
+              Matrix 1: " + this->shape() + "). \
+              Matrix 2: " + other.shape());
         }
 
         Matrix<T> res(row_count, col_count);
