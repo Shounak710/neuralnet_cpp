@@ -147,7 +147,99 @@ Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot, size_t row
   return delta;
 }
 
+Matrix<double> NeuralNetMLP::delt_calc(Matrix<double> y_onehot) {
+  Matrix<double> delta(output_activations.row_count, output_activations.col_count);
+  cout << "loss type: " << loss_type << endl;
+
+  if((loss_type == "cce") || (loss_type == "categorical_cross_entropy")) {
+    delta = output_activations - y_onehot;
+  } else if(loss_type == "mse") {
+    // for MSE loss
+    if(activation_type == "sigmoid") {
+      Matrix<double> sigm_deriv = sigmoid_prime(output_weighted_inputs);
+      delta = (output_activations - y_onehot).el_mult(sigm_deriv);
+    } else if(activation_type == "softmax") {
+      for(int i=0; i < output_activations.row_count; i++) {
+        double sum = 0.0;
+
+        for(int j=0; j < output_activations.col_count; j++) {
+          sum += (output_activations[i][j] - y_onehot[i][j]) * output_activations[i][j];
+          
+        }
+
+        for(int k=0; k < output_activations.col_count; k++) {
+          delta[i][k] = output_activations[i][k] * (output_activations[i][k] - y_onehot[i][k] - sum);
+        }
+      }
+    }
+  } else {
+    throw std::runtime_error("Unsupported loss function type " + loss_type);
+  }
+
+  // delta = delta.col_mean();
+
+  return delta;
+}
+
 void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
+  Matrix<double> delta = delt_calc(y_onehot);
+  
+  cout << "delta shape: " << delta.shape() << endl;
+  cout << "bo shape: " << biases_output.shape() << endl;
+  cout << "wo shape: " << weights_output.shape() << endl;
+  cout << "hab shape: " << hidden_activations.back().shape() << endl;
+
+  biases_output = biases_output - delta.scalar_mult(learning_rate);
+
+  Matrix<double> dha = delta.row_mult(hidden_activations.back()).col_mean()[0][0];
+  // dha = (delta.row_mult(hidden_activations.back()).col_mean())[0];
+
+  // cout << "dha shape: " << dha.shape() << endl;
+  // for(int i=0; i < delta.row_count; i++) {
+  //   cout << "dha shape: " << dha.shape() << endl;
+  //   // cout << (Matrix<double>({delta[i]}).Tr() * Matrix<double>({hidden_activations.back()[i]})).shape() << endl;
+
+  //   dha = dha + delta.Tr() * Matrix<double>({hidden_activations.back()[i]});
+  // }
+
+  weights_output = weights_output - dha.scalar_mult(learning_rate);
+  cout << "w calculated" << endl;
+
+  for(int i=weights_hidden.size() - 2; i >= 0; i--) {
+    Matrix<double> weight;
+    if(i == weights_hidden.size() - 2) {
+      weight = weights_output;
+    } else {
+      weight = weights_hidden[i + 2];
+    }
+
+    cout << "start i: " << i << " ds" << endl;
+    cout << "acfp shape: " << activation_function_prime(hidden_weighted_inputs[i+1]).Tr().shape() << endl;
+    cout << "delta shape: " << delta.shape() << endl;
+    cout << "wt shape: " << weight.shape() << endl;
+    cout << "hwi shape: " << hidden_weighted_inputs[i+1].shape() << endl;
+
+    Matrix<double> dw = delta * weight;
+
+    cout << "dw shape: " << dw.shape() << endl;
+
+    delta = Matrix<double>(hidden_weighted_inputs[i+1].row_count, weight.col_count);
+    for(int k=0; k < delta.row_count; k++) {
+      delta[k] = ((activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][k]})) * dw[k]).col_mean())[0];
+    }
+    
+    cout << "delta calculated" << endl;
+
+    cout << "wh shape: " << weights_hidden[i+1].shape() << endl;
+    cout << "ha shape: " << hidden_activations[i].shape() << endl;
+    cout << "bh shape: " << biases_hidden[i+1].shape() << endl;
+
+    weights_hidden[i+1] = weights_hidden[i+1] - (delta.Tr() * hidden_activations[i]).scalar_mult(learning_rate);
+    biases_hidden[i+1] = biases_hidden[i+1] - delta.scalar_mult(learning_rate);
+  }
+}
+
+/*void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
   for(int j=0; j < y_onehot.row_count; j++) {
     cout << "h1" << endl;
     Matrix<double> delta = calculate_delta(y_onehot, j);
@@ -226,7 +318,7 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
     }
   }
   // Matrix<double> delta =  (activation_function_prime(output_weighted_inputs)) * (loss_function_prime(output_activations, y_onehot));
-}
+}*/
 
 Matrix<double> NeuralNetMLP::sigmoid(Matrix<double> z) {
   Matrix<double> res(z.row_count, z.col_count);
@@ -312,19 +404,21 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
 }
 
 Matrix<double> NeuralNetMLP::softmax_prime(Matrix<double> z) {
-  cout << "softmax prime z dim: " << z.shape() << endl;
+  // cout << "softmax prime z dim: " << z.shape() << endl;
   Matrix<double> softm = softmax(z);
-  Matrix<double> jacobian = Matrix<double>(z.row_count, z.row_count);
+  
+  Matrix<double> jacobian = Matrix<double>(z.col_count, z.col_count);
 
-  for(int i=0; i < z.row_count; i++) {
+  for(int i=0; i < z.col_count; i++) {
     for(int j=0; j < z.col_count; j++) {
       if(i == j) {
-        jacobian[i][j] = softm[i][0] * (1 - softm[i][0]);
+        jacobian[i][j] = softm[0][j] * (1 - softm[0][j]);
       } else {
-        jacobian[i][j] = -softm[i][0] * softm[j][0];
+        jacobian[i][j] = -softm[0][i] * softm[0][j];
       }
     }
   }
+  // cout << "jacobian calc" << endl;
   // cout << "softm size: " << sigm.shape() << endl;
   // cout << "diff size: " << diff.shape() << endl;
 

@@ -12,7 +12,7 @@ struct Matrix {
 
     Matrix(): row_count(0), col_count(0) {}
 
-    Matrix(int rc, int cc) : row_count(rc), col_count(cc), data(rc, std::vector<T>(cc, 0)) {}
+    Matrix(int rc, int cc) : row_count(rc), col_count(cc), data(rc, std::vector<T>(cc)) {}
     Matrix(int rc, int cc, T default_val): row_count(rc), col_count(cc), data(rc, std::vector<T>(cc, default_val)) {} 
 
     Matrix(const std::vector<std::vector<T>>& input_data) : data(input_data) {
@@ -57,7 +57,11 @@ struct Matrix {
 
         for(int i=0; i < row_count; i++) {
             for(int j=0; j < col_count; j++) {
-            res[0][j] += data[i][j] / row_count;
+                if(i == 0) {
+                    res[0][j] = data[i][j] / row_count; // Doing this explicitly due to type problems
+                } else {
+                    res[0][j] = res[0][j] + (data[i][j] / row_count);
+                }
             }
         }
 
@@ -70,7 +74,6 @@ struct Matrix {
                 "Matrix dimensions are not compatible for addition. \
               Matrix 1: " + this->shape() + "). \
               Matrix 2: " + other.shape());
-            );
         }
 
         Matrix<T> res(row_count, col_count);
@@ -80,6 +83,10 @@ struct Matrix {
             }
         }
         return res;
+    }
+
+    Matrix<T> operator+=(const Matrix<T>& other) {
+        *this = *this + other;
     }
 
     Matrix<T> operator-(const Matrix<T>& other) const {
@@ -120,25 +127,48 @@ struct Matrix {
         return res;
     }
 
-    Matrix<T> operator*(const vector<T>& other) const {
+    Matrix<T> operator*(const std::vector<T>& other) const {
         if (col_count != other.size()) {
             throw std::invalid_argument(
               "Matrix dimensions are not compatible for matrix-vector multiplication. \
               Matrix 1:  " + this->shape() + ". \
-              Vector size: " + other.size());
+              Vector size: " + std::to_string(other.size()));
         }
 
-        Matrix<T> res(row_count, other.col_count);
+        Matrix<T> res(row_count, other.size());
         for (size_t i = 0; i < row_count; i++) {
-            for (size_t j = 0; j < other.col_count; j++) {
+            for (size_t j = 0; j < other.size(); j++) {
                 T el = 0;
                 for (size_t k = 0; k < col_count; k++) {
-                    el += data[i][k] * other[k][j];
+                    el += data[i][k] * other[k];
                 }
                 res[i][j] = el;
             }
         }
         return res;
+    }
+
+    Matrix<T> operator/(const T num) const {
+        if(num == 0) throw std::runtime_error("Cannot divide matrix by 0");
+
+        Matrix<T> res(row_count, col_count);
+
+        for(size_t i = 0; i < row_count; i++) {
+            for(size_t j=0; j < col_count; j++) {
+                res[i][j] = data[i][j] / num;
+            }
+        }
+
+        return res;
+    }
+
+    Matrix<T>& operator=(const Matrix<T>& other) {
+        row_count = other.row_count;
+        col_count = other.col_count;
+
+        data = other.data;
+
+        return *this;
     }
 
     Matrix<T> el_mult(Matrix<T>& other) const {
@@ -179,14 +209,30 @@ struct Matrix {
         return res;
     }
 
-    
-    Matrix<T>& operator=(const Matrix<T>& other) {
-        row_count = other.row_count;
-        col_count = other.col_count;
+    // Treat each row of self and other matrix as a separate matrix, and multiply after aligning correctly by transposing as needed.
+    Matrix<Matrix<T>> row_mult(const Matrix<T>& other, bool transpose_self=true, bool transpose_other=false) const {
+        if ((row_count != other.row_count)) {
+            throw std::invalid_argument(
+              "Matrix dimensions are not compatible for row multiplication. \
+              Matrix 1: " + this->shape() + " \
+              Matrix 2: " + other.shape());
+        }
 
-        data = other.data;
+        Matrix<Matrix<T>> res(row_count, 1);
 
-        return *this;
+        std::cout << "starting row mult" << std::endl;
+        for(int i=0; i < row_count; i++) {
+            Matrix<T> mat_1 = Matrix<T>({data[i]});
+            Matrix<T> mat_2 = Matrix<T>({other.data[i]});
+
+            if(transpose_self) mat_1 = mat_1.Tr();
+            if(transpose_other) mat_2 = mat_2.Tr();
+
+            res[i] = {mat_1 * mat_2};
+        }
+        std::cout << "completed row mult" << std::endl;
+
+        return res;
     }
 
     float mean() const {

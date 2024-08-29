@@ -54,10 +54,11 @@ class NeuralNetMLP {
     
     void forward(Matrix<double> x);
     void backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate=0.01);
+    void faster_backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate=0.01);
 
     Matrix<double> (*activation_function)(Matrix<double> z);
     Matrix<double> (*activation_function_prime)(Matrix<double> z);
-
+    Matrix<double> delt_calc(Matrix<double> y_onehot);
     double (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
     Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);
 
