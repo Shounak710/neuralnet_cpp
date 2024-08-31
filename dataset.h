@@ -63,5 +63,6 @@ struct Dataset {
       test_line_numbers = std::vector<int>(line_numbers.begin() + split_point, line_numbers.end());
 
       std::sort(train_line_numbers.begin(), train_line_numbers.end());
+      std::sort(test_line_numbers.begin(), test_line_numbers.end());
     }
 };

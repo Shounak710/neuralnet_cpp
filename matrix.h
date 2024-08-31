@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
+#include <thread>
 
 // Matrix of floating numbers (or any other type T)
 template<typename T>
@@ -106,6 +107,19 @@ struct Matrix {
         return res;
     }
 
+    static void matrix_multiply_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+        for (int i = start_row; i < end_row; ++i) {
+            for (int j = 0; j < other_data[0].size(); ++j) {
+                int sum = 0;
+                for (int k = 0; k < s_data[0].size(); ++k) {
+                    sum += s_data[i][k] * other_data[k][j];
+                }
+                res_data[i][j] = sum;
+            }
+        }
+    }
+
     Matrix<T> operator*(const Matrix<T>& other) const {
         if (col_count != other.row_count) {
             throw std::invalid_argument(
@@ -115,15 +129,35 @@ struct Matrix {
         }
 
         Matrix<T> res(row_count, other.col_count);
-        for (size_t i = 0; i < row_count; i++) {
-            for (size_t j = 0; j < other.col_count; j++) {
-                T el = 0;
-                for (size_t k = 0; k < col_count; k++) {
-                    el += data[i][k] * other[k][j];
-                }
-                res[i][j] = el;
-            }
+        
+        int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
+        std::vector<std::thread> threads;
+        int rows_per_thread = row_count / num_threads;
+
+        for (int t = 0; t < num_threads; ++t) {
+            int start_row = t * rows_per_thread;
+            int end_row = (t == num_threads - 1) ? row_count : start_row + rows_per_thread;
+            threads.emplace_back(matrix_multiply_thread, start_row, end_row, std::cref(data), std::cref(other.data), std::ref(res.data));
         }
+
+        for (auto& th : threads) {
+            th.join();
+        }
+
+        // for (size_t i = 0; i < row_count; i++) {
+        //     for (size_t j = 0; j < other.col_count; j++) {
+        //         T el;
+        //         // std::cout << "starting el: " << el << std::endl;
+
+        //         for (size_t k = 0; k < col_count; k++) {
+        //             // std::cout << "i: " << i << " k: " << k << " j: " << j << std::endl;
+        //             el = el + data[i][k] * other[k][j];
+        //             // std::cout << "data: " << data[i][k] << " other: " << other[k][j] << " el: " << el << std::endl;
+        //         }
+        //         res[i][j] = el;
+        //         el = 0;
+        //     }
+        // }
         return res;
     }
 
@@ -171,6 +205,25 @@ struct Matrix {
         return *this;
     }
 
+    Matrix<T>& operator=(const T& val) {
+        for(auto i : data) {
+            for(auto j : i) {
+                j = val;
+            }
+        }
+
+        return *this;
+    }
+
+    static void matrix_el_mult_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+        for(int i=start_row; i < end_row; i++) {
+            for(int j=0; j < s_data[0].size(); j++) {
+                res_data[i][j] = s_data[i][j] * other_data[i][j];
+            }
+        }
+    }
+
     Matrix<T> el_mult(Matrix<T>& other) const {
         if ((row_count != other.row_count) || (col_count != other.col_count)) {
             throw std::invalid_argument(
@@ -181,10 +234,18 @@ struct Matrix {
 
         Matrix<T> res(row_count, col_count);
 
-        for(int i=0; i < row_count; i++) {
-            for(int j=0; j < col_count; j++) {
-                res[i][j] = data[i][j] * other[i][j];
-            }
+        int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
+        std::vector<std::thread> threads;
+        int rows_per_thread = row_count / num_threads;
+
+        for (int t = 0; t < num_threads; ++t) {
+            int start_row = t * rows_per_thread;
+            int end_row = (t == num_threads - 1) ? row_count : start_row + rows_per_thread;
+            threads.emplace_back(matrix_el_mult_thread, start_row, end_row, std::cref(data), std::cref(other.data), std::ref(res.data));
+        }
+
+        for (auto& th : threads) {
+            th.join();
         }
 
         return res;
@@ -195,7 +256,7 @@ struct Matrix {
         Matrix<T> res(row_count, col_count);
 
         for(int i=0; i < data.size(); i++) {
-            std::transform(data[i].begin(), data[i].end(), res[i].begin(), [&s](T e) {
+            transform(data[i].begin(), data[i].end(), res[i].begin(), [&s](T e) {
                 return s * e;
             });
         }
@@ -227,7 +288,10 @@ struct Matrix {
             if(transpose_self) mat_1 = mat_1.Tr();
             if(transpose_other) mat_2 = mat_2.Tr();
 
+            // std::cout << "i: " << i << " mat 1: " << mat_1.shape() << std::endl << mat_1 << std::endl;
+            // std::cout << "i: " << i << " mat 2: " << mat_2.shape() << std::endl << mat_2 << std::endl;
             res[i] = {mat_1 * mat_2};
+            // std::cout << "i: " << i << " res: " << std::endl << res[i][0] << std::endl;
         }
 
         return res;

@@ -61,7 +61,6 @@ struct Train {
   public:
     int num_epochs, batch_size;
     NeuralNetMLP* model;
-    std::vector<int> training_data_line_numbers, test_data_line_numbers;
     std::vector<double> losses;
 
     Train(NeuralNetMLP* model, Dataset* dataset, int num_epochs, int batch_size=500, float train_test_split_size = 0.2): model(model),
@@ -96,5 +95,32 @@ struct Train {
 
         losses.push_back(loss);
       }
+
+      print_train_and_test_accuracy();
+    }
+
+    void print_train_and_test_accuracy() {
+      Matrix<double> X_train, X_test;
+      Matrix<float> y_train, y_test;
+
+      for(int i=0; i < dataset->train_line_numbers.size(); i++) {
+        X_train.data.push_back(training_data[dataset->train_line_numbers[i]]);
+        y_train.data.push_back({dataset->y[dataset->train_line_numbers[i]-1]});
+      }
+
+      X_train.update_shape();
+      y_train.update_shape();
+
+      vector<vector<double>> test_data = dataset_reader.getlines_from_mmap(dataset->test_line_numbers);
+      X_test = Matrix<double>(test_data);
+
+      for(int j=0; j < dataset->test_line_numbers.size(); j++) {
+        y_test.data.push_back({dataset->y[dataset->test_line_numbers[j]-1]});
+      }
+
+      y_test.update_shape();
+
+      cout << "Training accuracy: " << model->compute_accuracy(X_train, y_train) << endl;
+      cout << "Test accuracy: " << model->compute_accuracy(X_test, y_test) << endl;
     }
 };

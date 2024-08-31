@@ -33,6 +33,9 @@ class NeuralNetMLP {
     }
 
     Matrix<double> calculate_delta(Matrix<double> y_onehot, size_t row_index);
+    Matrix<double> calculate_delta(Matrix<double> y_onehot) const;
+
+    void align_matrix_dimensions(Matrix<double> &target_matrix, Matrix<double> &reference_matrix);
 
     static Matrix<double> sigmoid_prime(Matrix<double> z);
     static Matrix<double> softmax_prime(Matrix<double> z);
@@ -54,11 +57,12 @@ class NeuralNetMLP {
     
     void forward(Matrix<double> x);
     void backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate=0.01);
-    void faster_backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate=0.01);
+    
+    double compute_accuracy(Matrix<double> x, Matrix<float> y);
 
     Matrix<double> (*activation_function)(Matrix<double> z);
     Matrix<double> (*activation_function_prime)(Matrix<double> z);
-    Matrix<double> delt_calc(Matrix<double> y_onehot);
+    // Matrix<double> delt_calc(Matrix<double> y_onehot);
     double (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
     Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);
 
@@ -94,8 +98,10 @@ class NeuralNetMLP {
         column_count = i==0 ? num_features : num_hidden[i-1];
 
         weights_hidden[i] = initialize_weights(row_count, column_count);
+        biases_hidden[i] = Matrix<double>(row_count, 1);
       }
 
       weights_output = initialize_weights(num_classes, num_hidden[num_hidden.size()-1]);
+      biases_output = Matrix<double>(num_classes, 1);
     }
 };
