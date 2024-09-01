@@ -19,12 +19,8 @@ Matrix<double> NeuralNetMLP::int_to_onehot(Matrix<float> y) {
       }
       cout << endl;
     }
-    /* cout << "entered i: " << i << endl;
-    cout << "y[i] size: " << y[i].size() << endl;
-    cout << "y[i][0]: " << y[i][0] << endl;
-    cout << "y_onehot shape: " << y_onehot.shape() << endl; */
+    
     y_onehot[i][y[i][0]] = 1;
-    // cout << "exited i: " << i << endl;
   }
 
   return y_onehot;
@@ -62,34 +58,32 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       prev_activations = hidden_activations[i-1];
     }
 
-    // if((biases_hidden[i].row_count != weights_hidden[i].row_count) || (biases_hidden[i].col_count != 1)) {
-    //   biases_hidden[i] = Matrix<double>(weights_hidden[i].row_count, 1);
-
-    //   // if(contains_nan(biases_hidden[i])) {
-    //   //   cout << "i: " << i << endl;
-    //   //   cout << "biases hidden: " << biases_hidden[i] << endl;
-
-    //   //   throw std::runtime_error("fp Nan encountered at inner biases");
-    //   // }
-    // }
-
     hidden_weighted_inputs[i] = Matrix<double>(prev_activations.row_count, biases_hidden[i].row_count);
     align_matrix_dimensions(hidden_activations[i], hidden_weighted_inputs[i]);
     
     for(int j=0; j < prev_activations.row_count; j++) {
       hidden_weighted_inputs[i][j] = (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()[0];
-      hidden_activations[i][j] = activation_function(Matrix<double>({hidden_weighted_inputs[i][j]}))[0];
-    }
-    // hidden_weighted_inputs[i] = prev_weights * weights_hidden[i].Tr() + biases_hidden[i];
-    // hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
-    
-    // if(contains_nan(hidden_weighted_inputs[i]) || contains_nan(hidden_activations[i])) {
-    //   cout << "i: " << i << endl;
-    //   cout << "hwi: " << hidden_weighted_inputs[i] << endl;
-    //   cout << "hactv: " << activation_function(hidden_weighted_inputs[i]);
+      // hidden_activations[i][j] = activation_function(Matrix<double>({hidden_weighted_inputs[i][j]}))[0];
 
-    //   throw std::runtime_error("fp Nan encountered at inner hwi and hactv");
+      if(i > 0 && (j > 0)) {
+        // cout << "wt hidden " << i << ": " << endl << weights_hidden[i] << endl << endl;
+        // cout << "prev act: " << endl << Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+        // cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+        // cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
+        // cout << "hwi: " << endl << (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr() << endl;
+
+        // cout << "hwi compare: " << (hidden_weighted_inputs[i][j] == hidden_weighted_inputs[i][j-1]) << endl;
+        // cout << "pa compare: " << (prev_activations[j] == prev_activations[j-1]) << endl;
+        // cout << "hai compare: " << (hidden_activations[i][j] == hidden_activations[i][j-1]) << endl;
+      }
+    }
+    // if(i == 0) {
+    //   cout << "prev act: " << prev_activations << endl;
+    //   cout << "hwi: " << hidden_weighted_inputs[i] << endl;
+
+    //   throw std::runtime_error("");
     // }
+    hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
   }
 
   output_weighted_inputs = Matrix<double>(hidden_activations.back().row_count, biases_output.row_count);
@@ -100,63 +94,6 @@ void NeuralNetMLP::forward(Matrix<double> x) {
     output_weighted_inputs[k] = (weights_output * Matrix<double>({hidden_activations.back()[k]}).Tr() + biases_output).Tr()[0];
     output_activations[k] = activation_function(Matrix<double>({output_weighted_inputs[k]}))[0];
   }
-
-  // cout << "output weighted inputs: " << output_weighted_inputs.shape() << endl;
-  // cout << "output activations: " << output_activations.shape() << endl;
-  
-  // if(contains_nan(output_weighted_inputs)) {
-  //   cout << "weights output: " << weights_output.Tr() << endl;
-  //   cout << "hal: " << hidden_activations[hidden_activations.size()-1];
-  //   cout << "bo: " << biases_output << endl;
-  //   cout << "owi: " << output_weighted_inputs << endl;
-
-  //   throw std::runtime_error("fp Nan encountered at owi");
-  // }
-
-  // if(contains_nan(output_activations)) {
-  //   cout << "owi: " << output_weighted_inputs << endl;
-  //   cout << "oa: " << output_activations << endl;
-
-  //   throw std::runtime_error("fp Nan encountered at oa");
-  // }
-}
-
-Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot, size_t row_index) {
-  // Matrix<double> delta(output_activations.row_count, output_activations.col_count);
-  Matrix<double> y = Matrix<double>({y_onehot[row_index]});
-
-  Matrix<double> output_activation = Matrix<double>({output_activations[row_index]});
-  Matrix<double> delta(1, output_activation.col_count);
-  // cout << "loss type: " << loss_type << endl;
-
-  if((loss_type == "cce") || (loss_type == "categorical_cross_entropy")) {
-    delta = output_activation - y;
-  } else if(loss_type == "mse") {
-    // for MSE loss
-    if(activation_type == "sigmoid") {
-      Matrix<double> sigm_deriv = sigmoid_prime(Matrix<double>({output_weighted_inputs[row_index]}));
-      delta = (output_activation - y).el_mult(sigm_deriv);
-    } else if(activation_type == "softmax") {
-      for(int i=0; i < output_activation.row_count; i++) {
-        double sum = 0.0;
-
-        for(int j=0; j < output_activation.col_count; j++) {
-          sum += (output_activation[i][j] - y[i][j]) * output_activation[i][j];
-          
-        }
-
-        for(int k=0; k < output_activation.col_count; k++) {
-          delta[i][k] = output_activation[i][k] * (output_activation[i][k] - y[i][k] - sum);
-        }
-      }
-    }
-  } else {
-    throw std::runtime_error("Unsupported loss function type " + loss_type);
-  }
-
-  // delta = delta.col_mean();
-
-  return delta;
 }
 
 Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot) const {
@@ -196,24 +133,14 @@ Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot) const {
 void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
   Matrix<double> delta = calculate_delta(y_onehot);
   
-  // cout << "delta shape: " << delta.shape() << endl;
-  // cout << "bo shape: " << biases_output.shape() << endl;
-  // cout << "wo shape: " << weights_output.shape() << endl;
-  // cout << "hab shape: " << hidden_activations.back().shape() << endl;
+  cout << "delta shape: " << delta.shape() << endl;
+  cout << "bo shape: " << biases_output.shape() << endl;
+  cout << "wo shape: " << weights_output.shape() << endl;
+  cout << "hab shape: " << hidden_activations.back().shape() << endl;
 
   biases_output = biases_output - delta.scalar_mult(learning_rate);
 
   Matrix<double> dha = (delta * hidden_activations.back().col_mean());
-  // Matrix<double> dha = delta.row_mult(hidden_activations.back()).col_mean()[0][0];
-  // dha = (delta.row_mult(hidden_activations.back()).col_mean())[0];
-
-  // cout << "dha shape: " << dha.shape() << endl;
-  // for(int i=0; i < delta.row_count; i++) {
-  //   cout << "dha shape: " << dha.shape() << endl;
-  //   // cout << (Matrix<double>({delta[i]}).Tr() * Matrix<double>({hidden_activations.back()[i]})).shape() << endl;
-
-  //   dha = dha + delta.Tr() * Matrix<double>({hidden_activations.back()[i]});
-  // }
 
   weights_output = weights_output - dha.scalar_mult(learning_rate * delta.row_count);
   
@@ -225,128 +152,18 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
       weight = weights_hidden[i + 2];
     }
 
-    // cout << "start i: " << i << " ds" << endl;
-    // cout << "acfp shape: " << activation_function_prime(hidden_weighted_inputs[i+1]).Tr().shape() << endl;
-    // cout << "delta shape: " << delta.shape() << endl;
-    // cout << "wt shape: " << weight.shape() << endl;
-    // cout << "hwi shape: " << hidden_weighted_inputs[i+1].shape() << endl;
-    // cout << "wh shape: " << weights_hidden[i+1].shape() << endl;
-    // cout << "ha shape: " << hidden_activations[i].shape() << endl;
-    // cout << "bh shape: " << biases_hidden[i+1].shape() << endl;
     Matrix<double> dw = weight.Tr() * delta;
-    // cout << "dw shape: " << dw.shape() << endl;
-    // cout << "afp shape: " << activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][0]})).shape() << endl;
-    // cout << "bh shape: " << biases_hidden[i+1].shape() << endl;
-    // throw std::runtime_error("Check dimensions");
 
     if(loss_type == "cce" && activation_type == "softmax") {
       delta = activation_function_prime(hidden_weighted_inputs[i+1]).Tr() * dw;
     } else {
       delta = activation_function_prime(hidden_weighted_inputs[i+1]).col_mean().Tr().el_mult(dw);
     }
-    // activation_function_prime(hidden_weighted_inputs[i+1]).Tr().col_mean();
-    // activation_function_prime()
-    // delta = (Matrix<double>({activation_function_prime(hidden_weighted_inputs[i+1])[j]}).Tr() * delta * weight).col_mean();
-    // delta = Matrix<double>(hidden_weighted_inputs[i+1].row_count, weight.col_count);
-    // for(int k=0; k < delta.row_count; k++) {
-    //   // cout << activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][k]})).shape() << endl;
-    //   // throw std::runtime_error("");
-
-    //   delta[k] = (Matrix<double>({activation_function_prime(hidden_weighted_inputs[i+1])[k]}).Tr() * Matrix<double>({dw[k]}))[0];
-
-    //   // delta = delta + dw * (activation_function_prime(Matrix<double>({hidden_weighted_inputs[i+1][k]})));
-    // }
-    // delta = delta / (delta.row_count);
     
-    // cout << "drmhai shape: " << delta.row_mult(hidden_activations[i])[0][0].shape() << endl;
     weights_hidden[i+1] = weights_hidden[i+1] - ((delta * (hidden_activations[i].col_mean()))).scalar_mult(learning_rate * delta.row_count);
     biases_hidden[i+1] = biases_hidden[i+1] - delta.scalar_mult(learning_rate);
   }
 }
-
-// void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
-//   for(int j=0; j < y_onehot.row_count; j++) {
-//     cout << "h1" << endl;
-//     Matrix<double> delta = calculate_delta(y_onehot, j);
-//     cout << "h2" << endl;
-    
-//     if(contains_nan(delta)) {
-//       cout << "delta 1: " << delta << endl;
-//       cout << "output wt inp " << output_weighted_inputs << endl;
-//       cout << "output actv " << output_activations << endl;
-      
-//       throw std::runtime_error("Nan encountered at delta 1");
-//     }
-
-//     cout << "here 1" << endl;
-    
-//     biases_output[j] = (Matrix<double>({biases_output[j]}) - delta.scalar_mult(learning_rate))[0];
-//     cout << "here 3" << endl;
-//     cout << "woj shape: " << weights_output.shape() << endl;
-//     cout << "delta shape: " << delta.shape() << " ha shape: " << hidden_activations.back().shape() << endl;
-//     weights_output = weights_output - (delta.Tr() * Matrix<double>({hidden_activations.back()[j]})).scalar_mult(learning_rate);
-
-//     cout << "here 2" << endl;
-//     if(contains_nan(biases_output) || contains_nan(weights_output)) {
-//       cout << "biases output: " << biases_output << endl;
-//       cout << "output wt " << weights_output << endl;
-//       cout << "last hddn actv " << hidden_activations[hidden_activations.size() - 1] << endl;
-      
-//       throw std::runtime_error("Nan encountered at output WnB");
-//     }
-
-//     for(int i=weights_hidden.size() - 2; i >= 0; i--) {
-//       Matrix<double> weight;
-//       if(i == weights_hidden.size() - 2) {
-//         weight = weights_output;
-//       } else {
-//         weight = weights_hidden[i + 2];
-//       }
-
-//       if(contains_nan(weight)) {
-//         cout << "i: " << i << endl;
-//         cout << "wt: " << weight << endl;
-
-//         throw std::runtime_error("Nan encountered at inner wt");
-//       }
-
-//       cout << "hid 1" << endl;
-//       // cout << "hwi: " << hidden_weighted_inputs[i+1] << endl;
-//       cout << "acfp shape: " << Matrix<double>({activation_function_prime(hidden_weighted_inputs[i+1])[j]}).Tr().shape() << endl;
-//       cout << "delta shape: " << delta.shape() << endl;
-//       cout << "weight shape: " << weight.shape() << endl;
-//       Matrix<double> dw = delta * weight;
-      
-//       delta = (Matrix<double>({activation_function_prime(hidden_weighted_inputs[i+1])[j]}).Tr() * dw).col_mean();
-//       cout << "hid 2" << endl;
-//       if(contains_nan(delta)) {
-//         cout << "i: " << i << endl;
-//         // cout << "delta inner: " << delta << endl;
-//         cout << "hwi: " << contains_nan(hidden_weighted_inputs[i+1]) << endl;
-//         cout << "ahwi: " << contains_nan(activation_function_prime(hidden_weighted_inputs[i+1]));
-
-//         throw std::runtime_error("Nan encountered at inner delta");
-//       }
-
-//       cout << "wh shape: " << weights_hidden[i+1].shape() << endl;
-//       cout << "delta tr shape: " << delta.Tr().shape() << endl;
-//       cout << "hac shape: " << Matrix<double>({hidden_activations[i][j]}).shape() << endl;
-//       weights_hidden[i+1] = weights_hidden[i+1] - (delta.Tr() * Matrix<double>({hidden_activations[i][j]})).scalar_mult(learning_rate);
-//       cout << "bias shape: " << biases_hidden[i+1].shape() << endl;
-//       biases_hidden[i+1][j] = (Matrix<double>({biases_hidden[i+1][j]}) - delta.scalar_mult(learning_rate))[0];
-//       cout << "whbh done" << endl;
-
-//       if(contains_nan(weights_hidden[i+1]) || contains_nan(biases_hidden[i+1])) {
-//         cout << "i: " << i << endl;
-//         cout << "delta inner: " << delta << endl;
-//         cout << "hact: " << hidden_activations[i] << endl;
-
-//         throw std::runtime_error("Nan encountered at inner WnB");
-//       }
-//     }
-//   }
-//   // Matrix<double> delta =  (activation_function_prime(output_weighted_inputs)) * (loss_function_prime(output_activations, y_onehot));
-// } 
 
 Matrix<double> NeuralNetMLP::sigmoid(Matrix<double> z) {
   Matrix<double> res(z.row_count, z.col_count);
@@ -362,17 +179,9 @@ Matrix<double> NeuralNetMLP::sigmoid(Matrix<double> z) {
         res[i][j] = (exp(z[i][j] - max_el)) / (exp(-max_el) + exp(z[i][j] - max_el));
       }
 
-      if(isnan(res[i][j]) || isinf(res[i][j])) {
-        res[i][j] = 1;
-
-        // cout << "nan encountered at res" << endl;
-        // cout << "z: " << z[i][j] << endl;
-        // cout << "max el: " << max_el << endl;
-        // cout << "z - max_el: " << z[i][j] - max_el << endl;
-        // cout << "res: " << res << endl;
-
-        // throw std::runtime_error("sigmoid res nan");
-      }
+      // if(isnan(res[i][j]) || isinf(res[i][j])) {
+      //   res[i][j] = 1;
+      // }
     }
   }
 
@@ -385,10 +194,21 @@ double NeuralNetMLP::compute_accuracy(Matrix<double> x, Matrix<float> y) {
   forward(x);
   
   for(int i=0; i < output_activations.row_count; i++) {
+    if(i > 0) {
+      cout << "feature values equal to prev row ? row " << i << " " << (x[i] == x[i-1]) << " " << endl;
+      cout << "output wt input values equal to prev row ? row " << i << " " << (output_weighted_inputs[i] == output_weighted_inputs[i-1]) << " " << endl;
+      cout << "output act values equal to prev row ? row " << i << " " << (output_activations[i] == output_activations[i-1]) << " " << endl;
+    }
+    cout << "output act: " << endl;
+    for(auto j : output_weighted_inputs[i]) cout << j << " ";
+    for(auto j : output_activations[i]) cout << j << " ";
+    cout << endl;
+
     auto max_it = std::max_element(output_activations[i].begin(), output_activations[i].end());
     pred_label = std::distance(output_activations[i].begin(), max_it);
-
+    cout << "pred label: " << pred_label << " y: " << y[i][0] << " ";
     if(pred_label == y[i][0]) correct_pred_count++;
+    cout << "verdict: " << (pred_label == y[i][0]) << endl;
   }
 
   return (double) correct_pred_count / output_activations.row_count;
@@ -416,14 +236,14 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
       res[i][j] = exp(z[i][j]-max_el);
       sums[i] += res[i][j];
 
-      if(isnan(res[i][j]) || isinf(res[i][j])) {
-        cout << "nan encountered at softmax res" << endl;
-        cout << "z: " << z[i][j];
-        cout << "max el: " << max_el;
-        cout << "res: " << res[i][j];
+      // if(isnan(res[i][j]) || isinf(res[i][j])) {
+      //   cout << "nan encountered at softmax res" << endl;
+      //   cout << "z: " << z[i][j];
+      //   cout << "max el: " << max_el;
+      //   cout << "res: " << res[i][j];
 
-        throw std::runtime_error("res nan");
-      }
+      //   throw std::runtime_error("res nan");
+      // }
     }
   }
 
@@ -431,15 +251,15 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
     for(int j=0; j < res.col_count; j++) {
       res[i][j] /= sums[i];
 
-      if(isnan(res[i][j]) || isinf(res[i][j])) {
-        cout << "nan encountered at res / sum" << endl;
-        cout << "z: " << z[i][j] << endl;
-        cout << "exp(z): " << (long double) exp(z[i][j]) << endl;
-        cout << "res: " << res[i][j];
-        cout << "sum: " << sums[i];
+      // if(isnan(res[i][j]) || isinf(res[i][j])) {
+      //   cout << "nan encountered at res / sum" << endl;
+      //   cout << "z: " << z[i][j] << endl;
+      //   cout << "exp(z): " << (long double) exp(z[i][j]) << endl;
+      //   cout << "res: " << res[i][j];
+      //   cout << "sum: " << sums[i];
 
-        throw std::runtime_error("res nan");
-      }
+      //   throw std::runtime_error("res nan");
+      // }
     }
   }
 

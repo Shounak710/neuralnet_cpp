@@ -29,6 +29,7 @@ struct Train {
       for(int i=0; i < dataset->train_line_numbers.size(); i++) {
         training_data[dataset->train_line_numbers[i]] = td[i];
       }
+
       cout << "completed loading training data" << endl;
     }
 
@@ -43,6 +44,7 @@ struct Train {
         batch_dataset.data.push_back(training_data[line_number]);
 
         if(training_data[line_number].size() == 0) {
+          cout << "no data on line number: " << line_number;
           throw std::runtime_error("empty data");
         }
 

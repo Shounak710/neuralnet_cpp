@@ -8,6 +8,82 @@
 // Matrix of floating numbers (or any other type T)
 template<typename T>
 struct Matrix {
+    private:
+        static void matrix_add_thread(int start_col, int end_col, const std::vector<std::vector<T>>& s_data,
+                            const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for (int i = 0; i < s_data.size(); i++) {
+                for (int j = start_col; j < end_col; ++j) {
+                    res_data[i][j] = s_data[i][j] + other_data[i][j];
+                }
+            }
+        }
+
+        static void matrix_subtract_thread(int start_col, int end_col, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for (int i = 0; i < s_data.size(); i++) {
+                for (int j = start_col; j < end_col; ++j) {
+                    res_data[i][j] = s_data[i][j] - other_data[i][j];
+                }
+            }
+        }
+
+        static void matrix_multiply_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                            const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for (int i = start_row; i < end_row; ++i) {
+                for (int j = 0; j < other_data[0].size(); ++j) {
+                    for (int k = 0; k < s_data[0].size(); ++k) {
+                        res_data[i][j] += s_data[i][k] * other_data[k][j];
+                    }
+                }
+            }
+        }
+
+        static void matrix_el_mult_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for(int i=start_row; i < end_row; i++) {
+                for(int j=0; j < s_data[0].size(); j++) {
+                    res_data[i][j] = s_data[i][j] * other_data[i][j];
+                }
+            }
+        }
+
+        // passing other data to this function even if it's not needed to keep same parameters in all threading functions
+        // this allows creating an abstract 'threadify' function which is cleaner for the code.
+        static void matrix_col_mean_thread(int start_col, int end_col, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for(int i=0; i < s_data.size(); i++) {
+                for(int j=start_col; j < end_col; j++) {
+                    if(i == 0) {
+                        res_data[0][j] = s_data[i][j] / s_data.size();
+                    } else {
+                        res_data[0][j] += (s_data[i][j] / s_data.size());
+                    }
+                }
+            }
+        }
+
+        static void threadify(void (*thread_func)(int, int, const std::vector<std::vector<T>>&, const std::vector<std::vector<T>>&,
+        std::vector<std::vector<T>>&), const size_t total_threads, const std::vector<std::vector<T>>& s_data,
+                     const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+
+            int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
+
+            std::vector<std::thread> threads;
+
+            int datapts_per_thread = total_threads / num_threads;
+
+            for (int t = 0; t < num_threads; ++t) {
+                int start_idx = t * datapts_per_thread;
+                int end_idx = (t == num_threads - 1) ? total_threads : start_idx + datapts_per_thread;
+                threads.emplace_back(thread_func, start_idx, end_idx, std::cref(s_data), std::cref(other_data), std::ref(res_data));
+            }
+
+            for (auto& th : threads) {
+                th.join();
+            }
+        }
+
+    public:
     std::vector<std::vector<T>> data;
     size_t row_count = 0, col_count = 0;
 
@@ -52,23 +128,6 @@ struct Matrix {
 
     Matrix<T> Tr() const { return transpose(); }
 
-    // Calculate mean value for each column in matrix
-    Matrix<T> col_mean() const {
-        Matrix<T> res(1, col_count);
-
-        for(int i=0; i < row_count; i++) {
-            for(int j=0; j < col_count; j++) {
-                if(i == 0) {
-                    res[0][j] = data[i][j] / row_count; // Doing this explicitly due to type problems
-                } else {
-                    res[0][j] = res[0][j] + (data[i][j] / row_count);
-                }
-            }
-        }
-
-        return res;
-    }
-
     Matrix<T> operator+(const Matrix<T>& other) const {
         if ((other.row_count != row_count) || (other.col_count != col_count)) {
             throw std::invalid_argument(
@@ -78,16 +137,14 @@ struct Matrix {
         }
 
         Matrix<T> res(row_count, col_count);
-        for (size_t i = 0; i < row_count; i++) {
-            for (size_t j = 0; j < col_count; j++) {
-                res[i][j] = data[i][j] + other[i][j];
-            }
-        }
+        threadify(matrix_add_thread, col_count, std::cref(data), std::cref(other.data), std::ref(res.data));
+
         return res;
     }
 
     Matrix<T> operator+=(const Matrix<T>& other) {
         *this = *this + other;
+        return *this;
     }
 
     Matrix<T> operator-(const Matrix<T>& other) const {
@@ -99,25 +156,9 @@ struct Matrix {
         }
 
         Matrix<T> res(row_count, col_count);
-        for (size_t i = 0; i < row_count; i++) {
-            for (size_t j = 0; j < col_count; j++) {
-                res[i][j] = data[i][j] - other[i][j];
-            }
-        }
-        return res;
-    }
+        threadify(matrix_subtract_thread, col_count, std::cref(data), std::cref(other.data), std::ref(res.data));
 
-    static void matrix_multiply_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
-                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
-        for (int i = start_row; i < end_row; ++i) {
-            for (int j = 0; j < other_data[0].size(); ++j) {
-                int sum = 0;
-                for (int k = 0; k < s_data[0].size(); ++k) {
-                    sum += s_data[i][k] * other_data[k][j];
-                }
-                res_data[i][j] = sum;
-            }
-        }
+        return res;
     }
 
     Matrix<T> operator*(const Matrix<T>& other) const {
@@ -129,71 +170,15 @@ struct Matrix {
         }
 
         Matrix<T> res(row_count, other.col_count);
-        
-        int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
-        std::vector<std::thread> threads;
-        int rows_per_thread = row_count / num_threads;
+        threadify(matrix_multiply_thread, row_count, std::cref(data), std::cref(other.data), std::ref(res.data));
 
-        for (int t = 0; t < num_threads; ++t) {
-            int start_row = t * rows_per_thread;
-            int end_row = (t == num_threads - 1) ? row_count : start_row + rows_per_thread;
-            threads.emplace_back(matrix_multiply_thread, start_row, end_row, std::cref(data), std::cref(other.data), std::ref(res.data));
-        }
-
-        for (auto& th : threads) {
-            th.join();
-        }
-
-        // for (size_t i = 0; i < row_count; i++) {
-        //     for (size_t j = 0; j < other.col_count; j++) {
-        //         T el;
-        //         // std::cout << "starting el: " << el << std::endl;
-
-        //         for (size_t k = 0; k < col_count; k++) {
-        //             // std::cout << "i: " << i << " k: " << k << " j: " << j << std::endl;
-        //             el = el + data[i][k] * other[k][j];
-        //             // std::cout << "data: " << data[i][k] << " other: " << other[k][j] << " el: " << el << std::endl;
-        //         }
-        //         res[i][j] = el;
-        //         el = 0;
-        //     }
-        // }
-        return res;
-    }
-
-    Matrix<T> operator*(const std::vector<T>& other) const {
-        if (col_count != other.size()) {
-            throw std::invalid_argument(
-              "Matrix dimensions are not compatible for matrix-vector multiplication. \
-              Matrix 1:  " + this->shape() + ". \
-              Vector size: " + std::to_string(other.size()));
-        }
-
-        Matrix<T> res(row_count, other.size());
-        for (size_t i = 0; i < row_count; i++) {
-            for (size_t j = 0; j < other.size(); j++) {
-                T el = 0;
-                for (size_t k = 0; k < col_count; k++) {
-                    el += data[i][k] * other[k];
-                }
-                res[i][j] = el;
-            }
-        }
         return res;
     }
 
     Matrix<T> operator/(const T num) const {
         if(num == 0) throw std::runtime_error("Cannot divide matrix by 0");
 
-        Matrix<T> res(row_count, col_count);
-
-        for(size_t i = 0; i < row_count; i++) {
-            for(size_t j=0; j < col_count; j++) {
-                res[i][j] = data[i][j] / num;
-            }
-        }
-
-        return res;
+        return this->scalar_mult(1/num);
     }
 
     Matrix<T>& operator=(const Matrix<T>& other) {
@@ -215,15 +200,6 @@ struct Matrix {
         return *this;
     }
 
-    static void matrix_el_mult_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
-                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
-        for(int i=start_row; i < end_row; i++) {
-            for(int j=0; j < s_data[0].size(); j++) {
-                res_data[i][j] = s_data[i][j] * other_data[i][j];
-            }
-        }
-    }
-
     Matrix<T> el_mult(Matrix<T>& other) const {
         if ((row_count != other.row_count) || (col_count != other.col_count)) {
             throw std::invalid_argument(
@@ -233,41 +209,15 @@ struct Matrix {
         }
 
         Matrix<T> res(row_count, col_count);
-
-        int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
-        std::vector<std::thread> threads;
-        int rows_per_thread = row_count / num_threads;
-
-        for (int t = 0; t < num_threads; ++t) {
-            int start_row = t * rows_per_thread;
-            int end_row = (t == num_threads - 1) ? row_count : start_row + rows_per_thread;
-            threads.emplace_back(matrix_el_mult_thread, start_row, end_row, std::cref(data), std::cref(other.data), std::ref(res.data));
-        }
-
-        for (auto& th : threads) {
-            th.join();
-        }
+        threadify(matrix_el_mult_thread, row_count, std::cref(data), std::cref(other.data), std::ref(res.data));
 
         return res;
     }
 
     // Multiply matrix with a scalar
-    Matrix<T> scalar_mult(float s, bool print=false) const {
-        Matrix<T> res(row_count, col_count);
-
-        for(int i=0; i < data.size(); i++) {
-            transform(data[i].begin(), data[i].end(), res[i].begin(), [&s](T e) {
-                return s * e;
-            });
-        }
-
-        if(print){
-            std::cout << "scalar: " << s << std::endl;
-            std::cout << *this << std::endl;
-
-            std::cout << res << std::endl;
-        }
-        return res;
+    Matrix<T> scalar_mult(T s, bool print=false) const {
+        Matrix<T> other_data(row_count, col_count, s); 
+        return this->el_mult(other_data);
     }
 
     // Treat each row of self and other matrix as a separate matrix, and multiply after aligning correctly by transposing as needed.
@@ -305,6 +255,14 @@ struct Matrix {
         }
 
         return sum / (row_count * col_count);
+    }
+
+    // Calculate mean value for each column in matrix
+    Matrix<T> col_mean() const {
+        Matrix<T> res(1, col_count);
+        threadify(matrix_col_mean_thread, col_count, std::cref(data), std::cref(data), std::ref(res.data));
+
+        return res;
     }
 
     std::string shape() const {

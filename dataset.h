@@ -51,9 +51,12 @@ struct Dataset {
       std::shuffle(indices.begin(), indices.end(), g);
     }
 
-    void train_test_split_indices(float test_size=0.2) {
+    void train_test_split_indices(float test_size=0.2, bool header=false) {
       std::vector<int> line_numbers;
-      for(int i=1; i <= num_rows; i++) { line_numbers.push_back(i); }
+      int starting_num = header ? 1 : 2;
+
+      // starting from 2, to omit headers
+      for(int i=starting_num; i <= num_rows; i++) { line_numbers.push_back(i); }
 
       shuffle_vec(line_numbers);
 
