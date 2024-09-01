@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <thread>
+#include <cmath>
 
 // Matrix of floating numbers (or any other type T)
 template<typename T>
@@ -58,6 +59,17 @@ struct Matrix {
                     } else {
                         res_data[0][j] += (s_data[i][j] / s_data.size());
                     }
+                }
+            }
+        }
+
+        // passing other data to this function even if it's not needed to keep same parameters in all threading functions
+        // this allows creating an abstract 'threadify' function which is cleaner for the code.
+        static void matrix_pow_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for(int i=start_row; i < end_row; i++) {
+                for(int j=0; j < s_data[0].size(); j++) {
+                    res_data[i][j] = std::pow(s_data[i][j], other_data[0][0]);
                 }
             }
         }
@@ -214,6 +226,13 @@ struct Matrix {
         return res;
     }
 
+    Matrix<T> pow(T exp) const {
+        Matrix<T> res(row_count, col_count);
+        std::vector<std::vector<T>> other_data = {{exp}};
+        threadify(matrix_pow_thread, row_count, std::cref(data), std::cref(other_data), std::ref(res.data));
+
+        return res;
+    }
     // Multiply matrix with a scalar
     Matrix<T> scalar_mult(T s, bool print=false) const {
         Matrix<T> other_data(row_count, col_count, s); 

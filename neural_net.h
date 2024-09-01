@@ -37,16 +37,16 @@ class NeuralNetMLP {
 
     void align_matrix_dimensions(Matrix<double> &target_matrix, Matrix<double> &reference_matrix);
 
-    static Matrix<double> sigmoid_prime(Matrix<double> z);
-    static Matrix<double> softmax_prime(Matrix<double> z);
+    static Matrix<double> sigmoid_prime(const Matrix<double>& z);
+    static Matrix<double> softmax_prime(const Matrix<double>& z);
     static Matrix<double> mse_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
     static Matrix<double> categorical_cross_entropy_loss_prime(Matrix<double> output_activations, Matrix<double> y_onehot);
 
   public:
     std::string loss_type, activation_type;
 
-    static Matrix<double> sigmoid(Matrix<double> z);
-    static Matrix<double> softmax(Matrix<double> z);
+    static Matrix<double> sigmoid(const Matrix<double>& z);
+    static Matrix<double> softmax(const Matrix<double>& z);
 
     static double mse_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
     static double categorical_cross_entropy_loss(Matrix<double> output_activations, Matrix<double> y_onehot);
@@ -60,8 +60,8 @@ class NeuralNetMLP {
     
     double compute_accuracy(Matrix<double> x, Matrix<float> y);
 
-    Matrix<double> (*activation_function)(Matrix<double> z);
-    Matrix<double> (*activation_function_prime)(Matrix<double> z);
+    Matrix<double> (*activation_function)(const Matrix<double>& z);
+    Matrix<double> (*activation_function_prime)(const Matrix<double>& z);
     // Matrix<double> delt_calc(Matrix<double> y_onehot);
     double (*loss_function)(Matrix<double> output_activations, Matrix<double> y_onehot);
     Matrix<double> (*loss_function_prime)(Matrix<double> output_activations, Matrix<double> y_onehot);

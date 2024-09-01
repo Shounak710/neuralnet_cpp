@@ -63,28 +63,28 @@ int main() {
   // cout << "row mult: " << endl;
   // cout << a.row_mult(b) << endl;
 
-  vector<int>layer_counts = {3, 5, 6, 7};
+  // vector<int>layer_counts = {3, 5, 6, 7};
 
-  auto start = chrono::high_resolution_clock::now();
-  Dataset ds(dataset_filename, labels_filename);
+  // auto start = chrono::high_resolution_clock::now();
+  // Dataset ds(dataset_filename, labels_filename);
 
-  // cout << "num classes: " << ds.num_classes << " num_features: " << ds.num_features << endl;
+  // // cout << "num classes: " << ds.num_classes << " num_features: " << ds.num_features << endl;
 
-  NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "sigmoid", "mse");
+  // NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "sigmoid", "mse");
 
-  int num_epochs = 1;
-  Train t(&nn, &ds, num_epochs, 50, 0.50);
-  t.train(0.05);
-  auto end = chrono::high_resolution_clock::now();
+  // int num_epochs = 1;
+  // Train t(&nn, &ds, num_epochs, 50, 0.50);
+  // t.train(0.05);
+  // auto end = chrono::high_resolution_clock::now();
   
-  chrono::duration<double> duration = end - start;
+  // chrono::duration<double> duration = end - start;
 
-  cout << "Time taken for training model: " << duration.count() << " seconds" << endl;
-  cout << "Average time taken per epoch: " << duration.count() / num_epochs << " seconds" << endl;
+  // cout << "Time taken for training model: " << duration.count() << " seconds" << endl;
+  // cout << "Average time taken per epoch: " << duration.count() / num_epochs << " seconds" << endl;
 
-  cout << "losses: " << endl;
+  // cout << "losses: " << endl;
 
-  for(auto loss : t.losses) {
-    cout << loss << endl;
-  }
+  // for(auto loss : t.losses) {
+  //   cout << loss << endl;
+  // }
 }

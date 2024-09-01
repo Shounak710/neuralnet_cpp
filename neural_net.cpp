@@ -66,15 +66,25 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       // hidden_activations[i][j] = activation_function(Matrix<double>({hidden_weighted_inputs[i][j]}))[0];
 
       if(i > 0 && (j > 0)) {
-        // cout << "wt hidden " << i << ": " << endl << weights_hidden[i] << endl << endl;
-        // cout << "prev act: " << endl << Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
-        // cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
-        // cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
-        // cout << "hwi: " << endl << (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr() << endl;
+        cout << "wt hidden " << i << ": " << endl << weights_hidden[i] << endl << endl;
+        
+        cout << "prev act: " << endl << Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+        cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+        cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
+        cout << "hwi: " << endl << (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr() << endl;
+        cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()) << endl;
 
-        // cout << "hwi compare: " << (hidden_weighted_inputs[i][j] == hidden_weighted_inputs[i][j-1]) << endl;
-        // cout << "pa compare: " << (prev_activations[j] == prev_activations[j-1]) << endl;
-        // cout << "hai compare: " << (hidden_activations[i][j] == hidden_activations[i][j-1]) << endl;
+        cout << "prev act: " << endl << Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
+        cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
+        cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
+        cout << "hwi: " << endl << Matrix<double>({hidden_weighted_inputs[i][j-1]}) << endl;
+        cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() + biases_hidden[i]).Tr()) << endl;
+
+        cout << "hwi compare: " << (hidden_weighted_inputs[i][j] == hidden_weighted_inputs[i][j-1]) << endl;
+        cout << "pa compare: " << (prev_activations[j] == prev_activations[j-1]) << endl;
+        cout << "hai compare: " << (hidden_activations[i][j] == hidden_activations[i][j-1]) << endl;
+
+        throw std::runtime_error("checking");
       }
     }
     // if(i == 0) {
@@ -165,29 +175,6 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
   }
 }
 
-Matrix<double> NeuralNetMLP::sigmoid(Matrix<double> z) {
-  Matrix<double> res(z.row_count, z.col_count);
-  double max_el;
-
-  for(int i=0; i < z.row_count; i++) {
-    max_el = *max_element(z[i].begin(), z[i].end());
-
-    for(int j=0; j < z.col_count; j++) {
-      res[i][j] = (exp(z[i][j]) / (1 + exp(z[i][j])));
-
-      if(isnan(res[i][j]) || isinf(res[i][j])) {
-        res[i][j] = (exp(z[i][j] - max_el)) / (exp(-max_el) + exp(z[i][j] - max_el));
-      }
-
-      // if(isnan(res[i][j]) || isinf(res[i][j])) {
-      //   res[i][j] = 1;
-      // }
-    }
-  }
-
-  return res;
-}
-
 double NeuralNetMLP::compute_accuracy(Matrix<double> x, Matrix<float> y) {
   int correct_pred_count = 0, pred_label;
 
@@ -214,7 +201,29 @@ double NeuralNetMLP::compute_accuracy(Matrix<double> x, Matrix<float> y) {
   return (double) correct_pred_count / output_activations.row_count;
 }
 
-Matrix<double> NeuralNetMLP::sigmoid_prime(Matrix<double> z) {
+Matrix<double> NeuralNetMLP::sigmoid(const Matrix<double>& z) {
+  Matrix<double> res(z.row_count, z.col_count);
+  double max_el;
+
+  for(int i = 0; i < z.row_count; ++i) {
+    max_el = *max_element(z[i].begin(), z[i].end());
+
+    for(int j = 0; j < z.col_count; ++j) {
+      double exp_neg = exp(-z[i][j]);
+      res[i][j] = 1 / (1 + exp_neg);
+
+      // If there are issues with extreme values, the adjustment can be applied directly:
+      if (isnan(res[i][j]) || isinf(res[i][j])) {
+          double exp_adj = exp(z[i][j] - max_el);
+          res[i][j] = exp_adj / (exp_adj + exp(-max_el));
+      }
+    }
+  }
+
+  return res;
+}
+
+Matrix<double> NeuralNetMLP::sigmoid_prime(const Matrix<double>& z) {
   Matrix<double> sigm = sigmoid(z);
   Matrix<double> diff = Matrix<double>(z.row_count, z.col_count, 1.0) - sigm;
 
@@ -224,7 +233,7 @@ Matrix<double> NeuralNetMLP::sigmoid_prime(Matrix<double> z) {
   return sigm.el_mult(diff);
 }
 
-Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
+Matrix<double> NeuralNetMLP::softmax(const Matrix<double>& z) {
   Matrix<double> res(z.row_count, z.col_count);
   vector<double> sums(z.row_count, 0.0);
   double max_el;
@@ -266,7 +275,7 @@ Matrix<double> NeuralNetMLP::softmax(Matrix<double> z) {
   return res;
 }
 
-Matrix<double> NeuralNetMLP::softmax_prime(Matrix<double> z) {
+Matrix<double> NeuralNetMLP::softmax_prime(const Matrix<double>& z) {
   // cout << "softmax prime z dim: " << z.shape() << endl;
   Matrix<double> softm = softmax(z);
   
