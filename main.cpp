@@ -10,11 +10,6 @@
 
 using namespace std;
 
-const int N = 1000;
-Matrix<int> A(N, N);
-Matrix<int> B(N, N);
-Matrix<int> C(N, N);
-
 int main() {
   string dataset_filename="image_data.csv", labels_filename="labels.csv";
   // double res = -1.44045 * 0.731059 - 0.40998 * 0.5 + 0.0942367 * 0.5;
@@ -23,6 +18,11 @@ int main() {
   // Matrix<double> wt({{-1.44045, -0.40998, 0.0942367}});
   // Matrix<double> act({{0.731059, 0.5, 0.5}, {1, 2, 3}, {0.6789, -0.5698, 0.5432}});
 
+  // cout << "wt: " << endl << wt << endl;
+  // cout << "wttr: " << endl << wt.transpose() << endl << endl;
+
+  // cout << "act: " << endl << act << endl;
+  // cout << "acttr: " << endl << act.Tr() << endl;
   // cout << "mult: " << wt * act.Tr() << endl;
   // cout << "col mean first: " << wt.Tr() * act.col_mean();
 
@@ -64,27 +64,31 @@ int main() {
   // cout << a.row_mult(b) << endl;
 
   // vector<int>layer_counts = {3, 5, 6, 7};
+  vector<int>layer_counts(10, 10);
 
-  // auto start = chrono::high_resolution_clock::now();
-  // Dataset ds(dataset_filename, labels_filename);
+  auto start = chrono::high_resolution_clock::now();
 
-  // // cout << "num classes: " << ds.num_classes << " num_features: " << ds.num_features << endl;
+  Dataset ds(dataset_filename, labels_filename);
 
-  // NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "sigmoid", "mse");
+  cout << "start nn" << endl;
+  NeuralNetMLP nn(ds.num_classes, ds.num_features, layer_counts, "sigmoid", "mse");
+  cout << "end nn" << endl;
 
-  // int num_epochs = 1;
-  // Train t(&nn, &ds, num_epochs, 50, 0.50);
-  // t.train(0.05);
-  // auto end = chrono::high_resolution_clock::now();
+  int num_epochs = 150;
+  Train t(&nn, &ds, num_epochs, 7000, 0.50);
+  cout << "mid train" << endl;
+  t.train(0.02);
+  cout << "end train" << endl;
+  auto end = chrono::high_resolution_clock::now();
   
-  // chrono::duration<double> duration = end - start;
+  chrono::duration<double> duration = end - start;
 
-  // cout << "Time taken for training model: " << duration.count() << " seconds" << endl;
-  // cout << "Average time taken per epoch: " << duration.count() / num_epochs << " seconds" << endl;
+  cout << "Time taken for training model: " << duration.count() << " seconds" << endl;
+  cout << "Average time taken per epoch: " << duration.count() / num_epochs << " seconds" << endl;
 
-  // cout << "losses: " << endl;
+  cout << "losses: " << endl;
 
-  // for(auto loss : t.losses) {
-  //   cout << loss << endl;
-  // }
+  for(auto loss : t.losses) {
+    cout << loss << endl;
+  }
 }

@@ -35,7 +35,7 @@ class CSVReader {
     }
 
     std::vector<double> read_line_number(size_t line_number) {
-      if(line_number < 1) throw std::runtime_error("Line number should be greater than 0. Received: " + to_string(line_number));
+      if(line_number < 1) throw std::runtime_error("Line number should be greater than 0. Received: " + std::to_string(line_number));
 
       std::string line;
 

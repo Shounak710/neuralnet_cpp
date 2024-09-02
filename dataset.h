@@ -16,7 +16,7 @@ struct Dataset {
     int countUniqueValues(const Matrix<float>& labels) {
       std::set<int> unique_values;
 
-      for (vector<float> row : labels.data) {
+      for (std::vector<float> row : labels.data) {
         for(double value : row) {
           unique_values.insert(value);
         }
@@ -44,7 +44,7 @@ struct Dataset {
     }
 
     template<typename T=int>
-    static void shuffle_vec(vector<T>& indices) {
+    static void shuffle_vec(std::vector<T>& indices) {
       std::random_device rd;
       std::mt19937 g(rd());
 

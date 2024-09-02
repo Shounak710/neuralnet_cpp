@@ -10,10 +10,9 @@ struct StandardScaler {
 
   void fit(const Matrix<T>& x) {
     mean = x.col_mean();
-
-    std::vector<std::vector<T>> mean_data;
-    for(auto m : mean) {
-      mean_data.push_back(std::vector<T>(m, x.row_count));
+    std::vector<std::vector<T>> mean_data(mean.col_count);
+    for(int i=0; i < mean.col_count; i++) {
+      mean_data[i] = std::vector<T>(x.row_count, mean[0][i]);
     }
 
     stdev = Matrix<T>(mean_data).Tr();
@@ -23,11 +22,11 @@ struct StandardScaler {
   }
 
   void transform(Matrix<T>& x) {
-    for(i=0; i < x.col_count; i++) {
+    for(int i=0; i < x.col_count; i++) {
       T mos = mean[0][i] / stdev[0][i];
 
       for(int j=0; j < x.row_count; j++) {
-        X[j][i] = (X[j][i] / stdev[0][i]) - mos;
+        x[j][i] = (x[j][i] / stdev[0][i]) - mos;
       }
     }
   }

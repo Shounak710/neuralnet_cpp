@@ -35,7 +35,12 @@ class NeuralNetMLP {
     Matrix<double> calculate_delta(Matrix<double> y_onehot, size_t row_index);
     Matrix<double> calculate_delta(Matrix<double> y_onehot) const;
 
-    void align_matrix_dimensions(Matrix<double> &target_matrix, Matrix<double> &reference_matrix);
+    void align_matrix_dimensions(Matrix<double> &target_matrix, int row_count, int col_count);
+
+    static void sigmoid_thread(int start_row, int end_row, const std::vector<std::vector<double>>& s_data,
+  std::vector<std::vector<double>>& res_data);
+    static void softmax_thread(int start_row, int end_row, const std::vector<std::vector<double>>& s_data,
+  std::vector<std::vector<double>>& res_data);
 
     static Matrix<double> sigmoid_prime(const Matrix<double>& z);
     static Matrix<double> softmax_prime(const Matrix<double>& z);

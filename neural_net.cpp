@@ -41,15 +41,50 @@ bool contains_nan(Matrix<double> m) {
     return b;
   }
 
-void NeuralNetMLP::align_matrix_dimensions(Matrix<double> &target_matrix, Matrix<double> &reference_matrix) {
-  if((target_matrix.row_count != reference_matrix.row_count) || (target_matrix.col_count != reference_matrix.col_count)) {
-    target_matrix = Matrix<double>(reference_matrix.row_count, reference_matrix.col_count);
+void NeuralNetMLP::align_matrix_dimensions(Matrix<double> &target_matrix, int row_count, int col_count) {
+  if((target_matrix.row_count != row_count) || (target_matrix.col_count != col_count)) {
+    target_matrix = Matrix<double>(row_count, col_count);
   }
+}
+
+static void matrix_wt_input_thread(int start_row, int end_row, const Matrix<double>& weights,
+                    const Matrix<double>& activations, const Matrix<double>& biases, Matrix<double>& res) {
+    for(int i=start_row; i < end_row; i++) {
+      res[i] = (Matrix<double>({activations[i]}) * weights.Tr() + biases.Tr())[0];
+    }
+}
+
+void get_weighted_inputs(const Matrix<double>& weights, const Matrix<double>& activations, const Matrix<double>& biases,
+Matrix<double>& res) {
+  cout << "weights: " << weights.shape() << endl;
+  cout << "activations: " << activations.shape() << endl;
+  int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
+
+  std::vector<std::thread> threads;
+
+  int datapts_per_thread = activations.row_count / num_threads;
+
+  for (int t = 0; t < num_threads; ++t) {
+      int start_idx = t * datapts_per_thread;
+      int end_idx = (t == num_threads - 1) ? activations.row_count : start_idx + datapts_per_thread;
+      threads.emplace_back(matrix_wt_input_thread, start_idx, end_idx, std::cref(weights), std::cref(activations),
+      std::cref(biases), std::ref(res));
+  }
+
+  for (auto& th : threads) {
+    th.join();
+  }
+
+  Matrix<double> m = (activations * weights.Tr()).row_add(biases.Tr());
+  cout << "res: " << res.shape() << endl;
+
+  cout << (m.data == res.data) << endl;
+  // throw std::runtime_error("check");
 }
 
 void NeuralNetMLP::forward(Matrix<double> x) {
   Matrix<double> prev_activations;
-
+  std::chrono::duration<double> duration_1, duration_2, duration_3, duration_4, duration_5, duration_6;
   if(contains_nan(x)) cout << "x contains nan !" << endl;
   for(int i=0; i < num_hidden.size(); i++) {
     if(i==0) {
@@ -58,52 +93,85 @@ void NeuralNetMLP::forward(Matrix<double> x) {
       prev_activations = hidden_activations[i-1];
     }
 
-    hidden_weighted_inputs[i] = Matrix<double>(prev_activations.row_count, biases_hidden[i].row_count);
-    align_matrix_dimensions(hidden_activations[i], hidden_weighted_inputs[i]);
+    auto start_1 = std::chrono::high_resolution_clock::now();
+    align_matrix_dimensions(hidden_weighted_inputs[i], prev_activations.row_count, biases_hidden[i].row_count);
+    align_matrix_dimensions(hidden_activations[i], prev_activations.row_count, biases_hidden[i].row_count);
+    auto end_1 = std::chrono::high_resolution_clock::now();
+    duration_1 += end_1 - start_1;
     
-    for(int j=0; j < prev_activations.row_count; j++) {
-      hidden_weighted_inputs[i][j] = (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()[0];
-      // hidden_activations[i][j] = activation_function(Matrix<double>({hidden_weighted_inputs[i][j]}))[0];
+    auto start_2 = std::chrono::high_resolution_clock::now();
+    hidden_weighted_inputs[i] = (prev_activations * weights_hidden[i].Tr()).row_add(biases_hidden[i].Tr());
+    // get_weighted_inputs(weights_hidden[i], prev_activations, biases_hidden[i], hidden_weighted_inputs[i]);
+    auto end_2 = std::chrono::high_resolution_clock::now();
+    duration_2 += end_2 - start_2;
+    
+    // for(int j=0; j < prev_activations.row_count; j++) {
+      
+    //   // hidden_weighted_inputs[i][j] = (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()[0];
+      
+    //   // hidden_activations[i][j] = activation_function(Matrix<double>({hidden_weighted_inputs[i][j]}))[0];
 
-      if(i > 0 && (j > 0)) {
-        cout << "wt hidden " << i << ": " << endl << weights_hidden[i] << endl << endl;
+    //   // if(i > 0 && (j > 0)) {
+    //   //   cout << "wt hidden " << i << ": " << endl << weights_hidden[i] << endl << endl;
         
-        cout << "prev act: " << endl << Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
-        cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
-        cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
-        cout << "hwi: " << endl << (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr() << endl;
-        cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()) << endl;
+    //   //   cout << "prev act: " << endl << Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+    //   //   cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() << endl << endl;
+    //   //   cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
+    //   //   cout << "hwi: " << endl << (weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr() << endl;
+    //   //   cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j]}).Tr() + biases_hidden[i]).Tr()) << endl;
 
-        cout << "prev act: " << endl << Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
-        cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
-        cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
-        cout << "hwi: " << endl << Matrix<double>({hidden_weighted_inputs[i][j-1]}) << endl;
-        cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() + biases_hidden[i]).Tr()) << endl;
+    //   //   cout << "prev act: " << endl << Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
+    //   //   cout << "prod: " << endl << weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() << endl << endl;
+    //   //   cout << "bias " << i << ": " << endl << biases_hidden[i] << endl << endl;
+    //   //   cout << "hwi: " << endl << Matrix<double>({hidden_weighted_inputs[i][j-1]}) << endl;
+    //   //   cout << "hai: " << endl << activation_function((weights_hidden[i] * Matrix<double>({prev_activations[j-1]}).Tr() + biases_hidden[i]).Tr()) << endl;
 
-        cout << "hwi compare: " << (hidden_weighted_inputs[i][j] == hidden_weighted_inputs[i][j-1]) << endl;
-        cout << "pa compare: " << (prev_activations[j] == prev_activations[j-1]) << endl;
-        cout << "hai compare: " << (hidden_activations[i][j] == hidden_activations[i][j-1]) << endl;
-
-        throw std::runtime_error("checking");
-      }
-    }
+    //   //   cout << "hwi compare: " << (hidden_weighted_inputs[i][j] == hidden_weighted_inputs[i][j-1]) << endl;
+    //   //   cout << "pa compare: " << (prev_activations[j] == prev_activations[j-1]) << endl;
+    //   //   cout << "hai compare: " << (hidden_activations[i][j] == hidden_activations[i][j-1]) << endl;
+    //   // }
+    // }
+    auto start_3 = std::chrono::high_resolution_clock::now();
+    hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
+    auto end_3 = std::chrono::high_resolution_clock::now();
+    duration_3 += end_3 - start_3;
     // if(i == 0) {
     //   cout << "prev act: " << prev_activations << endl;
     //   cout << "hwi: " << hidden_weighted_inputs[i] << endl;
 
     //   throw std::runtime_error("");
     // }
-    hidden_activations[i] = activation_function(hidden_weighted_inputs[i]);
   }
-
-  output_weighted_inputs = Matrix<double>(hidden_activations.back().row_count, biases_output.row_count);
-
-  align_matrix_dimensions(output_activations, output_weighted_inputs);
+  auto start_4 = std::chrono::high_resolution_clock::now();
+  align_matrix_dimensions(output_weighted_inputs, hidden_activations.back().row_count, biases_output.row_count);
+  align_matrix_dimensions(output_activations, hidden_activations.back().row_count, biases_output.row_count);
+  auto end_4 = std::chrono::high_resolution_clock::now();
+  duration_4 += end_4 - start_4;
   
-  for(int k=0; k < hidden_activations.back().row_count; k++) {
-    output_weighted_inputs[k] = (weights_output * Matrix<double>({hidden_activations.back()[k]}).Tr() + biases_output).Tr()[0];
-    output_activations[k] = activation_function(Matrix<double>({output_weighted_inputs[k]}))[0];
-  }
+  // for(int k=0; k < hidden_activations.back().row_count; k++) {
+  //   auto start_5 = std::chrono::high_resolution_clock::now();
+  //   output_weighted_inputs[k] = (weights_output * Matrix<double>({hidden_activations.back()[k]}).Tr() + biases_output).Tr()[0];
+  //   auto end_5 = std::chrono::high_resolution_clock::now();
+  //   duration_5 += end_5 - start_5;
+  //   // output_activations[k] = activation_function(Matrix<double>({output_weighted_inputs[k]}))[0];
+  // }
+  auto start_5 = std::chrono::high_resolution_clock::now();
+  output_weighted_inputs = (hidden_activations.back() * weights_output.Tr()).row_add(biases_output.Tr());
+  // get_weighted_inputs(weights_output, hidden_activations.back(), biases_output, output_weighted_inputs);
+  auto end_5 = std::chrono::high_resolution_clock::now();
+  duration_5 += end_5 - start_5;
+
+  auto start_6 = std::chrono::high_resolution_clock::now();
+  output_activations = activation_function(Matrix<double>(output_weighted_inputs));
+  auto end_6 = std::chrono::high_resolution_clock::now();
+  duration_6 += end_6 - start_6;
+
+  // cout << "duration 1: " << duration_1.count() << "s" << endl;
+  // cout << "duration 2: " << duration_2.count() << "s" << endl;
+  // cout << "duration 3: " << duration_3.count() << "s" << endl;
+  // cout << "duration 4: " << duration_4.count() << "s" << endl;
+  // cout << "duration 5: " << duration_5.count() << "s" << endl;
+  // cout << "duration 6: " << duration_6.count() << "s" << endl;
 }
 
 Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot) const {
@@ -143,16 +211,16 @@ Matrix<double> NeuralNetMLP::calculate_delta(Matrix<double> y_onehot) const {
 void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float learning_rate) {
   Matrix<double> delta = calculate_delta(y_onehot);
   
-  cout << "delta shape: " << delta.shape() << endl;
-  cout << "bo shape: " << biases_output.shape() << endl;
-  cout << "wo shape: " << weights_output.shape() << endl;
-  cout << "hab shape: " << hidden_activations.back().shape() << endl;
+  // cout << "delta shape: " << delta.shape() << endl;
+  // cout << "bo shape: " << biases_output.shape() << endl;
+  // cout << "wo shape: " << weights_output.shape() << endl;
+  // cout << "hab shape: " << hidden_activations.back().shape() << endl;
 
   biases_output = biases_output - delta.scalar_mult(learning_rate);
 
   Matrix<double> dha = (delta * hidden_activations.back().col_mean());
 
-  weights_output = weights_output - dha.scalar_mult(learning_rate * delta.row_count);
+  weights_output = weights_output - dha.scalar_mult(learning_rate);
   
   for(int i=weights_hidden.size() - 2; i >= 0; i--) {
     Matrix<double> weight;
@@ -170,7 +238,7 @@ void NeuralNetMLP::backward(Matrix<double> x, Matrix<double> y_onehot, float lea
       delta = activation_function_prime(hidden_weighted_inputs[i+1]).col_mean().Tr().el_mult(dw);
     }
     
-    weights_hidden[i+1] = weights_hidden[i+1] - ((delta * (hidden_activations[i].col_mean()))).scalar_mult(learning_rate * delta.row_count);
+    weights_hidden[i+1] = weights_hidden[i+1] - ((delta * (hidden_activations[i].col_mean()))).scalar_mult(learning_rate);
     biases_hidden[i+1] = biases_hidden[i+1] - delta.scalar_mult(learning_rate);
   }
 }
@@ -181,13 +249,13 @@ double NeuralNetMLP::compute_accuracy(Matrix<double> x, Matrix<float> y) {
   forward(x);
   
   for(int i=0; i < output_activations.row_count; i++) {
-    if(i > 0) {
-      cout << "feature values equal to prev row ? row " << i << " " << (x[i] == x[i-1]) << " " << endl;
-      cout << "output wt input values equal to prev row ? row " << i << " " << (output_weighted_inputs[i] == output_weighted_inputs[i-1]) << " " << endl;
-      cout << "output act values equal to prev row ? row " << i << " " << (output_activations[i] == output_activations[i-1]) << " " << endl;
-    }
+    // if(i > 0) {
+    //   cout << "feature values equal to prev row ? row " << i << " " << (x[i] == x[i-1]) << " " << endl;
+    //   cout << "output wt input values equal to prev row ? row " << i << " " << (output_weighted_inputs[i] == output_weighted_inputs[i-1]) << " " << endl;
+    //   cout << "output act values equal to prev row ? row " << i << " " << (output_activations[i] == output_activations[i-1]) << " " << endl;
+    // }
     cout << "output act: " << endl;
-    for(auto j : output_weighted_inputs[i]) cout << j << " ";
+    // for(auto j : output_weighted_inputs[i]) cout << j << " ";
     for(auto j : output_activations[i]) cout << j << " ";
     cout << endl;
 
@@ -201,23 +269,42 @@ double NeuralNetMLP::compute_accuracy(Matrix<double> x, Matrix<float> y) {
   return (double) correct_pred_count / output_activations.row_count;
 }
 
-Matrix<double> NeuralNetMLP::sigmoid(const Matrix<double>& z) {
-  Matrix<double> res(z.row_count, z.col_count);
+void NeuralNetMLP::sigmoid_thread(int start_row, int end_row, const std::vector<std::vector<double>>& s_data,
+  std::vector<std::vector<double>>& res_data) {
   double max_el;
 
-  for(int i = 0; i < z.row_count; ++i) {
-    max_el = *max_element(z[i].begin(), z[i].end());
+  for (size_t i = start_row; i < end_row; i++) {
+    max_el = *max_element(s_data[i].begin(), s_data[i].end());
 
-    for(int j = 0; j < z.col_count; ++j) {
-      double exp_neg = exp(-z[i][j]);
-      res[i][j] = 1 / (1 + exp_neg);
+    for (size_t j = 0; j < s_data[0].size(); j++) {
+      double exp_neg = exp(-s_data[i][j]);
+      res_data[i][j] = 1 / (1 + exp_neg);
 
-      // If there are issues with extreme values, the adjustment can be applied directly:
-      if (isnan(res[i][j]) || isinf(res[i][j])) {
-          double exp_adj = exp(z[i][j] - max_el);
-          res[i][j] = exp_adj / (exp_adj + exp(-max_el));
+      if (isnan(res_data[i][j]) || isinf(res_data[i][j])) {
+        double exp_adj = exp(s_data[i][j] - max_el);
+        res_data[i][j] = exp_adj / (exp_adj + exp(-max_el));
       }
     }
+  }
+}
+
+Matrix<double> NeuralNetMLP::sigmoid(const Matrix<double>& z) {
+  Matrix<double> res(z.row_count, z.col_count);
+
+  int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
+
+  std::vector<std::thread> threads;
+
+  int datapts_per_thread = z.row_count / num_threads;
+
+  for (int t = 0; t < num_threads; ++t) {
+    int start_idx = t * datapts_per_thread;
+    int end_idx = (t == num_threads - 1) ? z.row_count : start_idx + datapts_per_thread;
+    threads.emplace_back(sigmoid_thread, start_idx, end_idx, std::cref(z.data), std::ref(res.data));
+  }
+
+  for (auto& th : threads) {
+    th.join();
   }
 
   return res;
@@ -233,43 +320,43 @@ Matrix<double> NeuralNetMLP::sigmoid_prime(const Matrix<double>& z) {
   return sigm.el_mult(diff);
 }
 
-Matrix<double> NeuralNetMLP::softmax(const Matrix<double>& z) {
-  Matrix<double> res(z.row_count, z.col_count);
-  vector<double> sums(z.row_count, 0.0);
+void NeuralNetMLP::softmax_thread(int start_row, int end_row, const std::vector<std::vector<double>>& s_data,
+  std::vector<std::vector<double>>& res_data) {
   double max_el;
+  vector<double> sums((end_row - start_row), 0.0);
 
-  for(int i=0; i < z.row_count; i++) {
-    max_el = *max_element(z[i].begin(), z[i].end());
+  for (int i = start_row; i < end_row; i++) {
+    max_el = *max_element(s_data[i].begin(), s_data[i].end());
 
-    for(int j=0; j < z.col_count; j++) {
-      res[i][j] = exp(z[i][j]-max_el);
-      sums[i] += res[i][j];
-
-      // if(isnan(res[i][j]) || isinf(res[i][j])) {
-      //   cout << "nan encountered at softmax res" << endl;
-      //   cout << "z: " << z[i][j];
-      //   cout << "max el: " << max_el;
-      //   cout << "res: " << res[i][j];
-
-      //   throw std::runtime_error("res nan");
-      // }
+    for(int j=0; j < s_data[0].size(); j++) {
+      res_data[i][j] = exp(s_data[i][j]-max_el);
+      sums[i] += res_data[i][j];
     }
   }
 
-  for(int i=0; i < res.row_count; i++) {
-    for(int j=0; j < res.col_count; j++) {
-      res[i][j] /= sums[i];
+  for(int j = start_row; j < end_row; j++) {
+    for(int k=0; k < s_data[0].size(); k++) {
+      res_data[j][k] /= sums[j-start_row];
+    } 
+  }
+}
 
-      // if(isnan(res[i][j]) || isinf(res[i][j])) {
-      //   cout << "nan encountered at res / sum" << endl;
-      //   cout << "z: " << z[i][j] << endl;
-      //   cout << "exp(z): " << (long double) exp(z[i][j]) << endl;
-      //   cout << "res: " << res[i][j];
-      //   cout << "sum: " << sums[i];
+Matrix<double> NeuralNetMLP::softmax(const Matrix<double>& z) {
+  Matrix<double> res(z.row_count, z.col_count);
+  int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
 
-      //   throw std::runtime_error("res nan");
-      // }
-    }
+  std::vector<std::thread> threads;
+
+  int datapts_per_thread = z.row_count / num_threads;
+
+  for (int t = 0; t < num_threads; ++t) {
+    int start_idx = t * datapts_per_thread;
+    int end_idx = (t == num_threads - 1) ? z.row_count : start_idx + datapts_per_thread;
+    threads.emplace_back(softmax_thread, start_idx, end_idx, std::cref(z.data), std::ref(res.data));
+  }
+
+  for (auto& th : threads) {
+    th.join();
   }
 
   return res;

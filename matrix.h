@@ -74,10 +74,18 @@ struct Matrix {
             }
         }
 
+        static void matrix_transpose_thread(int start_row, int end_row, const std::vector<std::vector<T>>& s_data,
+                           const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
+            for (size_t i = start_row; i < end_row; i++) {
+                for (size_t j = 0; j < s_data[0].size(); j++) {
+                    res_data[j][i] = s_data[i][j];
+                }
+            }
+        }
+
         static void threadify(void (*thread_func)(int, int, const std::vector<std::vector<T>>&, const std::vector<std::vector<T>>&,
         std::vector<std::vector<T>>&), const size_t total_threads, const std::vector<std::vector<T>>& s_data,
-                     const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
-
+        const std::vector<std::vector<T>>& other_data, std::vector<std::vector<T>>& res_data) {
             int num_threads = std::thread::hardware_concurrency(); // Number of threads supported by the hardware
 
             std::vector<std::thread> threads;
@@ -130,11 +138,14 @@ struct Matrix {
 
     Matrix<T> transpose() const {
         Matrix<T> res(col_count, row_count);
+
         for (size_t i = 0; i < row_count; i++) {
             for (size_t j = 0; j < col_count; j++) {
                 res[j][i] = data[i][j];
             }
         }
+        // threadify(matrix_transpose_thread, row_count, std::cref(data), std::cref(data), std::ref(res.data));
+
         return res;
     }
 
@@ -237,6 +248,18 @@ struct Matrix {
     Matrix<T> scalar_mult(T s, bool print=false) const {
         Matrix<T> other_data(row_count, col_count, s); 
         return this->el_mult(other_data);
+    }
+
+    Matrix<T> row_add(Matrix<T> b) const {
+        if ((b.row_count != 1) || (b.col_count != col_count)) {
+            throw std::invalid_argument(
+              "Matrix dimensions are not compatible for row addition. \
+              Matrix 1: " + this->shape() + " \
+              Matrix 2: " + b.shape());
+        }
+
+        Matrix<T> b_cp = Matrix<T>(std::vector<std::vector<T>>(row_count, b[0]));
+        return *this + b_cp;
     }
 
     // Treat each row of self and other matrix as a separate matrix, and multiply after aligning correctly by transposing as needed.
