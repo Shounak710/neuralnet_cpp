@@ -323,21 +323,19 @@ Matrix<double> NeuralNetMLP::sigmoid_prime(const Matrix<double>& z) {
 void NeuralNetMLP::softmax_thread(int start_row, int end_row, const std::vector<std::vector<double>>& s_data,
   std::vector<std::vector<double>>& res_data) {
   double max_el;
-  vector<double> sums((end_row - start_row), 0.0);
 
   for (int i = start_row; i < end_row; i++) {
+    double sum = 0.0;
     max_el = *max_element(s_data[i].begin(), s_data[i].end());
 
     for(int j=0; j < s_data[0].size(); j++) {
       res_data[i][j] = exp(s_data[i][j]-max_el);
-      sums[i] += res_data[i][j];
+      sum += res_data[i][j];
     }
-  }
 
-  for(int j = start_row; j < end_row; j++) {
     for(int k=0; k < s_data[0].size(); k++) {
-      res_data[j][k] /= sums[j-start_row];
-    } 
+      res_data[i][k] /= sum;
+    }
   }
 }
 
@@ -358,7 +356,6 @@ Matrix<double> NeuralNetMLP::softmax(const Matrix<double>& z) {
   for (auto& th : threads) {
     th.join();
   }
-
   return res;
 }
 

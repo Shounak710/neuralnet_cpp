@@ -128,17 +128,17 @@ struct Train {
           std::tuple<Matrix<double>, Matrix<float>> data = readBatch();
           y_onehot = model->int_to_onehot(std::get<1>(data));
 
-          auto start_frwrd = std::chrono::high_resolution_clock::now();
+          // auto start_frwrd = std::chrono::high_resolution_clock::now();
           model->forward(std::get<0>(data));
-          auto end_frwrd = std::chrono::high_resolution_clock::now();
-          std::chrono::duration<double> duration_frwrd = end_frwrd - start_frwrd;
-          std::cout << "Time taken for forward propagation: " << duration_frwrd.count() << " seconds" << endl;
+          // auto end_frwrd = std::chrono::high_resolution_clock::now();
+          // std::chrono::duration<double> duration_frwrd = end_frwrd - start_frwrd;
+          // std::cout << "Time taken for forward propagation: " << duration_frwrd.count() << " seconds" << endl;
 
-          auto start_bcwrd = std::chrono::high_resolution_clock::now();
+          // auto start_bcwrd = std::chrono::high_resolution_clock::now();
           model->backward(std::get<0>(data), y_onehot, learning_rate);
-          auto end_bcwrd = std::chrono::high_resolution_clock::now();
-          std::chrono::duration<double> duration_bcwrd = end_bcwrd - start_bcwrd;
-          std::cout << "Time taken for backward propagation: " << duration_bcwrd.count() << " seconds" << endl;
+          // auto end_bcwrd = std::chrono::high_resolution_clock::now();
+          // std::chrono::duration<double> duration_bcwrd = end_bcwrd - start_bcwrd;
+          // std::cout << "Time taken for backward propagation: " << duration_bcwrd.count() << " seconds" << endl;
         }
 
         last_read_index = -1;

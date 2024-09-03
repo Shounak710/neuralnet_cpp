@@ -63,8 +63,9 @@ int main() {
   // cout << "row mult: " << endl;
   // cout << a.row_mult(b) << endl;
 
-  // vector<int>layer_counts = {3, 5, 6, 7};
-  vector<int>layer_counts(10, 10);
+  // vector<int>layer_counts = {500, 250, 150, 70, 40, 20};
+  // vector<int>layer_counts(200, 20);
+  vector<int>layer_counts = {50};
 
   auto start = chrono::high_resolution_clock::now();
 
@@ -75,9 +76,9 @@ int main() {
   cout << "end nn" << endl;
 
   int num_epochs = 150;
-  Train t(&nn, &ds, num_epochs, 7000, 0.50);
+  Train t(&nn, &ds, num_epochs, 100, 0.15);
   cout << "mid train" << endl;
-  t.train(0.02);
+  t.train(0.1);
   cout << "end train" << endl;
   auto end = chrono::high_resolution_clock::now();
   
@@ -89,6 +90,7 @@ int main() {
   cout << "losses: " << endl;
 
   for(auto loss : t.losses) {
-    cout << loss << endl;
+    cout << loss << " ";
   }
+  cout << endl;
 }
